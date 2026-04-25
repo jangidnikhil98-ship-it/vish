@@ -1,0 +1,60 @@
+/* Shipping Policy page styles
+   Ported from the Laravel Blade <style> block of frontend.shipping-policy.
+   .policy-card and .policy-footer descendant selectors are already
+   safely scoped, so no extra wrapping needed here. */
+
+.policy-wrapper {
+  background: #faf7f4;
+  padding: 50px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.policy-title {
+  color: #613A18;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.policy-card {
+  background: #ffffff;
+  border-left: 5px solid #613A18;
+  padding: 25px 30px;
+  border-radius: 10px;
+}
+
+.policy-heading {
+  color: #4b2d12;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.policy-card ul {
+  margin-bottom: 0;
+  padding-left: 18px;
+}
+
+.policy-card li {
+  margin-bottom: 6px;
+}
+
+.policy-footer {
+  margin-top: 40px;
+  padding-top: 25px;
+  border-top: 1px dashed #c9b6a6;
+}
+
+.policy-footer h5 {
+  color: #613A18;
+  font-weight: 600;
+}
+
+.policy-footer a {
+  color: #613A18;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.policy-footer a:hover {
+  text-decoration: underline;
+}

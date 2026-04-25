@@ -1,0 +1,190 @@
+/* Scoped to the .checkout-container so this file never leaks. */
+
+.checkout-container {
+  padding-top: 30px;
+  padding-bottom: 60px;
+}
+
+/* Fix autofill & prefilled input text visibility — same intent as the inline
+   <style> in the original Blade. */
+.checkout-container input,
+.checkout-container select,
+.checkout-container textarea {
+  color: #000 !important;
+  background-color: #fff;
+}
+
+.checkout-container .from-typedrt h5 {
+  font-weight: 600;
+  color: #613a18;
+  margin-bottom: 0.5rem;
+}
+
+.checkout-container .form-control,
+.checkout-container .form-select {
+  border-radius: 8px;
+}
+
+.checkout-container .payment-cardmethod {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.checkout-container .payment-cardmethod h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #613a18;
+}
+
+.checkout-container .payment-box {
+  background: #faf7f4;
+  border: 1px solid #d8c4b2;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.checkout-container .pay-button {
+  background: #613a18;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.checkout-container .pay-button:hover:not(:disabled) {
+  background: #4b2d12;
+}
+
+.checkout-container .pay-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.checkout-container .donate-btn {
+  background: #613a18;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.checkout-container .donate-btn:hover {
+  background: #4b2d12;
+  color: #fff;
+}
+
+/* Order summary */
+.checkout-container .order-summary {
+  border: 1px solid #d8c4b2;
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: #fff;
+  position: sticky;
+  top: 1rem;
+}
+
+.checkout-container .order-summary h6 {
+  font-weight: 700;
+  color: #613a18;
+  margin-bottom: 1rem;
+}
+
+.checkout-container .order-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.checkout-container .order-summary li {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed #e9d8c6;
+}
+
+.checkout-container .order-summary li:last-child {
+  border-bottom: 0;
+}
+
+.checkout-container .prt-list-data {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.checkout-container .review-product-img-container {
+  flex: 0 0 auto;
+}
+
+.checkout-container .review-product-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e9d8c6;
+}
+
+.checkout-container .personalized-wooden-slice {
+  flex: 1 1 auto;
+  font-size: 0.9rem;
+}
+
+.checkout-container .personalized-wooden-slice strong {
+  display: block;
+  color: #2c2c2c;
+  margin-bottom: 0.25rem;
+}
+
+.checkout-container .personalized-wooden-slice p {
+  margin: 0;
+  color: #6c757d;
+}
+
+.checkout-container .product-cont-money {
+  font-weight: 600;
+  color: #613a18;
+  white-space: nowrap;
+}
+
+.checkout-container .totlal-amountdata,
+.checkout-container .allprice-data {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.checkout-container .allprice-data {
+  font-size: 1.1rem;
+}
+
+.checkout-container .empty-cart {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #6c757d;
+}
+
+/* Status banner */
+.checkout-container .status-banner {
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.checkout-container .status-banner--error {
+  background: #fdecea;
+  color: #b71c1c;
+  border-left: 4px solid #b71c1c;
+}
+
+.checkout-container .status-banner--info {
+  background: #e8f4fd;
+  color: #0d47a1;
+  border-left: 4px solid #0d47a1;
+}

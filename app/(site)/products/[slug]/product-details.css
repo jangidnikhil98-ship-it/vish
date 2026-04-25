@@ -1,0 +1,40 @@
+/* Thumbnail gallery */
+.product-detailsimages-list {
+  cursor: pointer;
+}
+
+.product-detailsimages-list.active {
+  border: 2px solid #613a18;
+  padding: 3px;
+}
+
+/* Price block */
+.price {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.price .discounted {
+  color: #613a18;
+  margin-right: 10px;
+  font-size: 25px;
+}
+
+.price .original {
+  text-decoration: line-through;
+  color: #999;
+  margin-right: 8px;
+}
+
+.price .sale {
+  background: #613a18;
+  color: #fff;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+/* Disabled buttons */
+button:disabled {
+  cursor: not-allowed;
+}
