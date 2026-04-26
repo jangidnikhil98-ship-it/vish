@@ -256,7 +256,9 @@ export const getProductBySlug = cached(
   {
     keyParts: ["products:bySlug"],
     tags: [CACHE_TAGS.products],
-    revalidate: false, // forever — bust with revalidateTag('products')
+    // Revalidate every 60s so newly-added reviews show up within a minute,
+    // even when the admin doesn't explicitly bust the cache.
+    revalidate: 60,
   },
 );
 
