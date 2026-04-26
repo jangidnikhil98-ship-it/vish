@@ -42,30 +42,38 @@ function createPool(): mysql.Pool {
     user: requireEnv("DB_USER", "DB_USERNAME"),
     password: envOr("DB_PASSWORD") ?? "",
     database: requireEnv("DB_NAME", "DB_DATABASE"),
-    connectionLimit: Number(envOr("DB_POOL_LIMIT") ?? 10),
+    // Shared cPanel hosting typically caps a MySQL user at 5 simultaneous
+    // connections. Keep the default very small and let high-end deployments
+    // override via DB_POOL_LIMIT in .env.
+    connectionLimit: Number(envOr("DB_POOL_LIMIT") ?? 3),
     waitForConnections: true,
     queueLimit: 0,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10_000,
+    // Close idle conns after 60s so we don't sit on the cap forever.
+    idleTimeout: Number(envOr("DB_IDLE_TIMEOUT_MS") ?? 60_000),
     timezone: "Z",
     dateStrings: false,
   });
 }
 
 /** Lazy DB getter — only creates the pool on first query call.
- *  Lets `next build` run without DB credentials. */
+ *  Lets `next build` run without DB credentials.
+ *
+ *  IMPORTANT: We cache the pool on `globalThis` in BOTH dev and production.
+ *  Without this, every API request would create a fresh pool of N
+ *  connections and quickly exhaust the per-user MySQL connection cap on
+ *  shared hosting (ER_TOO_MANY_USER_CONNECTIONS, errno 1203). Next.js
+ *  keeps a single Node process per worker, so this global cache is safe
+ *  and exactly what mysql2 docs recommend. */
 export function getDb(): MySql2Database<typeof schema> {
   if (global.__drizzleDb) return global.__drizzleDb;
 
   const pool = global.__mysqlPool ?? createPool();
-  if (process.env.NODE_ENV !== "production") {
-    global.__mysqlPool = pool;
-  }
+  global.__mysqlPool = pool;
 
   const db = drizzle(pool, { schema, mode: "default" });
-  if (process.env.NODE_ENV !== "production") {
-    global.__drizzleDb = db;
-  }
+  global.__drizzleDb = db;
   return db;
 }
 
