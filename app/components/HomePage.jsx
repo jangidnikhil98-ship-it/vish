@@ -297,7 +297,7 @@ export default function HomePage({ bestsellers = [] }) {
       </div>
 
       {/* CATEGORY */}
-      <section className="category-section py-5">
+      <section className="category-section our-category-portrait py-5">
         <div className="container">
           <div className="our-catgery-heading">
             <h2>
@@ -315,7 +315,7 @@ export default function HomePage({ bestsellers = [] }) {
                   <img
                     src="/img/brithday.webp"
                     alt="Birthday"
-                    className="img-fluid mb-2"
+                    loading="lazy"
                   />
                   <p>Birthday</p>
                 </Link>
@@ -331,7 +331,7 @@ export default function HomePage({ bestsellers = [] }) {
                   <img
                     src="/img/manichurimage.webp"
                     alt="Miniature Frame"
-                    className="img-fluid mb-2"
+                    loading="lazy"
                   />
                   <p>Miniature Frame</p>
                 </Link>
@@ -347,7 +347,7 @@ export default function HomePage({ bestsellers = [] }) {
                   <img
                     src="/img/anniversyimag.webp"
                     alt="Wedding & Anniversary"
-                    className="img-fluid mb-2"
+                    loading="lazy"
                   />
                   <p>Wedding &amp; Anniversary</p>
                 </Link>
@@ -363,7 +363,7 @@ export default function HomePage({ bestsellers = [] }) {
                   <img
                     src="/img/gift-image.webp"
                     alt="Mother's Day"
-                    className="img-fluid mb-2"
+                    loading="lazy"
                   />
                   <p>Mother&apos;s Day</p>
                 </Link>
