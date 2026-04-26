@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   productImages,
@@ -88,6 +88,11 @@ const defaultSizeFinalPriceSql = sql<string>`(
   LIMIT 1
 )`;
 
+// NOTE: Every public storefront query must add BOTH:
+//   eq(products.status, "active")
+//   isNull(products.deleted_at)        // Laravel soft-delete column
+// otherwise rows that the admin "deleted" will still leak through.
+
 /* ============================================================
    LIST PRODUCTS (cached 5 min)
    ============================================================ */
@@ -101,7 +106,7 @@ export const listProducts = cached(
     const offset = (page - 1) * perPage;
 
     // Type filter — same intent as PageController@products
-    const whereParts = [eq(products.status, "active")];
+    const whereParts = [eq(products.status, "active"), isNull(products.deleted_at)];
     if (type) {
       if (type === "natural-wooden-slice") {
         whereParts.push(eq(products.product_for, "round"));
@@ -175,7 +180,11 @@ export const getProductBySlug = cached(
       })
       .from(products)
       .where(
-        and(eq(products.product_name_slug, slug), eq(products.status, "active")),
+        and(
+          eq(products.product_name_slug, slug),
+          eq(products.status, "active"),
+          isNull(products.deleted_at),
+        ),
       )
       .limit(1);
 
@@ -210,7 +219,15 @@ export const getProductBySlug = cached(
           comment: ratting.comment,
         })
         .from(ratting)
-        .where(eq(ratting.product_id, product.id))
+        // Match Laravel behaviour: rows with NULL product_id are global
+        // testimonials shown on every product page, alongside any reviews
+        // linked specifically to this product.
+        .where(
+          or(
+            eq(ratting.product_id, product.id),
+            isNull(ratting.product_id),
+          ),
+        )
         .orderBy(desc(ratting.id))
         .limit(20),
     ]);
@@ -278,7 +295,11 @@ export const getRelatedProducts = cached(
       })
       .from(products)
       .where(
-        and(eq(products.status, "active"), sql`${products.id} <> ${excludeId}`),
+        and(
+          eq(products.status, "active"),
+          isNull(products.deleted_at),
+          sql`${products.id} <> ${excludeId}`,
+        ),
       )
       .orderBy(sql`RAND()`)
       .limit(Number(limit));
@@ -318,6 +339,7 @@ export const searchProducts = cached(
       .where(
         and(
           eq(products.status, "active"),
+          isNull(products.deleted_at),
           or(
             like(products.product_name, term),
             like(products.description, term),
@@ -358,7 +380,7 @@ export const getBestsellers = cached(
         finalPrice: defaultSizeFinalPriceSql,
       })
       .from(products)
-      .where(eq(products.status, "active"))
+      .where(and(eq(products.status, "active"), isNull(products.deleted_at)))
       .orderBy(desc(products.id))
       .limit(Number(limit));
 

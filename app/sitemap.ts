@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { products, blogs } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 
 export const revalidate = 3600;
 
@@ -47,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         updated_at: products.updated_at,
       })
       .from(products)
-      .where(eq(products.status, "active"))
+      .where(and(eq(products.status, "active"), isNull(products.deleted_at)))
       .orderBy(desc(products.id))
       .limit(5000);
 
