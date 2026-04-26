@@ -64,13 +64,18 @@ const toNumber = (v: unknown): number => {
 
 /**
  * Correlated subquery that returns the URL of a product's main image.
- * `image_type = 1` means main, `image_type = 2` means additional, so
- * `ORDER BY image_type ASC, id ASC` reliably picks the main image first.
+ *   image_type = 1 → main image (shown on cards / index page)
+ *   image_type = 2 → additional gallery images (only used on detail page)
+ *
+ * We strictly filter on `image_type = 1` so listing pages never accidentally
+ * fall back to a secondary/gallery image when the main one is missing.
+ * If a product has no main image, this returns NULL and the UI falls back
+ * to /img/no-image.png.
  */
 const mainImageSql = sql<string | null>`(
   SELECT pi.image_url FROM ${productImages} pi
-  WHERE pi.product_id = ${products.id}
-  ORDER BY pi.image_type ASC, pi.id ASC
+  WHERE pi.product_id = ${products.id} AND pi.image_type = 1
+  ORDER BY pi.id DESC
   LIMIT 1
 )`;
 
@@ -396,6 +401,8 @@ export const getBestsellers = cached(
   {
     keyParts: ["products:bestsellers"],
     tags: [CACHE_TAGS.products],
-    revalidate: 600,
+    // Revalidate every 60s so admin product changes (new images, deletes,
+    // status flips) show up on the home page within a minute.
+    revalidate: 60,
   },
 );
