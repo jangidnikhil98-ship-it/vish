@@ -18,6 +18,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Limit parallelism so the build doesn't hit EAGAIN on shared hosts
+  // (CloudLinux/cPanel caps concurrent processes per account).
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
 };
 
 export default nextConfig;
