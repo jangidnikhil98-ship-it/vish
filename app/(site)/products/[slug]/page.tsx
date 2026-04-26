@@ -7,8 +7,13 @@ import {
   type ProductCard,
   type ProductDetail,
 } from "@/lib/queries/products";
+import JsonLd from "@/app/components/JsonLd";
 import { Gallery, Form } from "./ProductDetailsClient";
 import "./product-details.css";
+
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+).replace(/\/$/, "");
 
 export const dynamic = "force-dynamic";
 
@@ -97,8 +102,77 @@ export default async function ProductDetailsPage({ params }: PageProps) {
   const defaultSize =
     product.sizes.find((s) => s.isDefault) ?? product.sizes[0] ?? null;
 
+  const productUrl = `${SITE_URL}/products/${product.slug ?? slug}`;
+  const productImages =
+    product.images.length > 0
+      ? product.images.map((img) =>
+          img.startsWith("http") || img.startsWith("/")
+            ? `${SITE_URL}${img.startsWith("/") ? img : `/${img}`}`
+            : `${SITE_URL}/storage/${img}`,
+        )
+      : [`${SITE_URL}${imageSrc(product.image)}`];
+  const cleanDescription = (product.description ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name ?? "Product",
+    image: productImages,
+    description: cleanDescription || `${product.name ?? "Product"} from Vishwakarma Gifts`,
+    sku: String(product.id),
+    brand: { "@type": "Brand", name: "Vishwakarma Gifts" },
+    ...(product.reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: product.avgRating.toFixed(1),
+            reviewCount: product.reviewCount,
+          },
+        }
+      : {}),
+    offers: {
+      "@type": "Offer",
+      url: productUrl,
+      priceCurrency: "INR",
+      price: (defaultSize?.finalPrice ?? product.finalPrice).toFixed(2),
+      availability: "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+    },
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Products",
+        item: `${SITE_URL}/products`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.name ?? "Product",
+        item: productUrl,
+      },
+    ],
+  };
+
   return (
     <>
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
+
       <section className="product-inner-page-content">
         <div className="container">
           <div className="row">

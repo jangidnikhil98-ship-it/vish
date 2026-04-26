@@ -179,6 +179,58 @@ export default function Header() {
   // Memoised total of items currently in cart (formatted)
   const totalFormatted = useMemo(() => formatINR(total), [total]);
 
+  // --- Basket offcanvas (Bootstrap) ---
+  // We don't rely on data-bs-toggle anymore because Bootstrap's JS loads
+  // *after* DOMContentLoaded (strategy="afterInteractive") and so its
+  // delegated click handler isn't attached to the trigger element. We call
+  // the Bootstrap API explicitly here.
+  const toggleBasket = (e) => {
+    if (e) e.preventDefault();
+    if (typeof window === "undefined") return;
+    const el = document.getElementById("offcanvasExample");
+    if (!el) return;
+
+    const bs = window.bootstrap;
+    if (bs?.Offcanvas) {
+      bs.Offcanvas.getOrCreateInstance(el).toggle();
+      return;
+    }
+
+    // Bootstrap hasn't finished loading yet — fallback that mimics what BS does.
+    const isOpen = el.classList.contains("show");
+    if (isOpen) {
+      el.classList.remove("show");
+      el.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      const backdrop = document.getElementById("__cart-backdrop");
+      backdrop?.remove();
+    } else {
+      el.classList.add("show");
+      el.removeAttribute("aria-hidden");
+      el.style.visibility = "visible";
+      document.body.style.overflow = "hidden";
+      if (!document.getElementById("__cart-backdrop")) {
+        const backdrop = document.createElement("div");
+        backdrop.id = "__cart-backdrop";
+        backdrop.className = "offcanvas-backdrop fade show";
+        backdrop.addEventListener("click", () => toggleBasket());
+        document.body.appendChild(backdrop);
+      }
+    }
+  };
+
+  const closeBasket = () => {
+    if (typeof window === "undefined") return;
+    const el = document.getElementById("offcanvasExample");
+    if (!el) return;
+    const bs = window.bootstrap;
+    if (bs?.Offcanvas) {
+      bs.Offcanvas.getOrCreateInstance(el).hide();
+    } else if (el.classList.contains("show")) {
+      toggleBasket();
+    }
+  };
+
   return (
     <>
       {/* TOP BAR */}
@@ -371,9 +423,9 @@ export default function Header() {
 
           <a
             className="shopping-bag nav-link position-relative"
-            data-bs-toggle="offcanvas"
             href="#offcanvasExample"
             aria-label={`Open cart, ${count} items`}
+            onClick={toggleBasket}
           >
             <i className="fa-solid fa-cart-shopping"></i>
             <span
@@ -396,9 +448,10 @@ export default function Header() {
           <div className="offcanvas-header">
             <h5 className="offcanvas-title">Basket</h5>
             <button
+              type="button"
               className="btn-close"
-              data-bs-dismiss="offcanvas"
               aria-label="Close"
+              onClick={closeBasket}
             ></button>
           </div>
 
@@ -497,7 +550,7 @@ export default function Header() {
                 <Link
                   href="/checkout"
                   className="btn btn-primary w-100"
-                  data-bs-dismiss="offcanvas"
+                  onClick={closeBasket}
                 >
                   Go to Basket
                 </Link>

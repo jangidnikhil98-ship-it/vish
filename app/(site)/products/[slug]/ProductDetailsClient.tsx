@@ -246,15 +246,34 @@ export function Form({
     setSubmitting(true);
     try {
       addItem(item);
-      // Open Bootstrap offcanvas for instant cart feedback
       const el = document.getElementById("offcanvasExample");
       if (el && typeof window !== "undefined") {
         const w = window as unknown as {
-          bootstrap?: { Offcanvas: new (e: HTMLElement) => { show: () => void } };
+          bootstrap?: {
+            Offcanvas: {
+              getOrCreateInstance: (e: HTMLElement) => { show: () => void };
+            };
+          };
         };
-        w.bootstrap?.Offcanvas
-          ? new w.bootstrap.Offcanvas(el).show()
-          : el.classList.add("show");
+        if (w.bootstrap?.Offcanvas) {
+          w.bootstrap.Offcanvas.getOrCreateInstance(el).show();
+        } else {
+          // Bootstrap JS hasn't loaded yet — show a manual fallback.
+          el.classList.add("show");
+          el.style.visibility = "visible";
+          document.body.style.overflow = "hidden";
+          if (!document.getElementById("__cart-backdrop")) {
+            const backdrop = document.createElement("div");
+            backdrop.id = "__cart-backdrop";
+            backdrop.className = "offcanvas-backdrop fade show";
+            backdrop.addEventListener("click", () => {
+              el.classList.remove("show");
+              document.body.style.overflow = "";
+              backdrop.remove();
+            });
+            document.body.appendChild(backdrop);
+          }
+        }
       }
     } finally {
       setSubmitting(false);

@@ -3,38 +3,6 @@
 import { useEffect } from "react";
 import Link from "next/link";
 
-// --- Static bestseller data (replace with DB query later) ---
-const bestsellers = [
-  {
-    slug: "customizable-engraved-on-wood-photo-frame-round-shape",
-    name: "Customizable Engraved Wooden Photo Frame – Round",
-    image: "/img/PersonalizedWoodenSlicePhotoFrame-WeddingAnniversary.jpg",
-    finalPrice: 499,
-    price: 799,
-  },
-  {
-    slug: "personalized-wooden-photo-stand",
-    name: "Personalized Wooden Photo Stand",
-    image: "/img/PersonalizedWoodenSlicePhotoFrame-WeddingAnniversary-2.jpg",
-    finalPrice: 599,
-    price: 899,
-  },
-  {
-    slug: "engraved-wooden-keychain",
-    name: "Engraved Wooden Keychain",
-    image: "/img/enrav.webp",
-    finalPrice: 199,
-    price: 299,
-  },
-  {
-    slug: "wooden-name-plate",
-    name: "Wooden Name Plate – Custom Engraved",
-    image: "/img/back.webp",
-    finalPrice: 799,
-    price: 1199,
-  },
-];
-
 const formatINR = (n) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2 }).format(n);
 
@@ -76,7 +44,19 @@ const testimonials = [
   },
 ];
 
-export default function HomePage() {
+/**
+ * @typedef {Object} Bestseller
+ * @property {string} slug
+ * @property {string} name
+ * @property {string} image
+ * @property {number} price
+ * @property {number} finalPrice
+ */
+
+/**
+ * @param {{ bestsellers?: Bestseller[] }} props
+ */
+export default function HomePage({ bestsellers = [] }) {
   useEffect(() => {
     let aosTries = 0;
     let owlTries = 0;
@@ -489,7 +469,7 @@ export default function HomePage() {
 
                         <div className="product-price">
                           <h2>₹{formatINR(product.finalPrice)}</h2>
-                          {product.price ? (
+                          {product.price && product.price > product.finalPrice ? (
                             <h6>₹{formatINR(product.price)}</h6>
                           ) : null}
                         </div>

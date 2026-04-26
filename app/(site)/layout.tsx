@@ -5,6 +5,7 @@ import { AuthProvider } from "@/app/components/AuthProvider";
 import { CartProvider } from "@/app/components/CartProvider";
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
+import JsonLd from "@/app/components/JsonLd";
 import "@/app/globals.css";
 
 const poppins = Poppins({
@@ -14,16 +15,70 @@ const poppins = Poppins({
   display: "swap",
 });
 
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+).replace(/\/$/, "");
+
+const SITE_DESCRIPTION =
+  "Personalized wooden engraved gifts in India — custom photo frames, plaques, name boards, keychains, and unique gifts for every occasion.";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  ),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Vishwakarma Gifts",
+    default:
+      "Vishwakarma Gifts — Personalized Wooden Engraved Gifts in India",
     template: "%s | Vishwakarma Gifts",
   },
-  description:
-    "Personalized wooden engraved gifts in India — custom photo frames, plaques, name boards, keychains, and unique gifts for every occasion.",
+  description: SITE_DESCRIPTION,
+  applicationName: "Vishwakarma Gifts",
+  keywords: [
+    "personalized wooden gifts",
+    "engraved photo frames",
+    "wooden gifts India",
+    "custom wooden gifts",
+    "engraved wooden plaque",
+    "wedding gifts",
+    "anniversary gifts",
+    "birthday gifts",
+  ],
+  authors: [{ name: "Vishwakarma Gifts" }],
+  creator: "Vishwakarma Gifts",
+  publisher: "Vishwakarma Gifts",
+  formatDetection: { email: false, address: false, telephone: false },
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: SITE_URL,
+    siteName: "Vishwakarma Gifts",
+    title: "Vishwakarma Gifts — Personalized Wooden Engraved Gifts in India",
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: "/img/banner.webp",
+        width: 1200,
+        height: 630,
+        alt: "Vishwakarma Gifts — Personalized wooden engraved gifts",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vishwakarma Gifts — Personalized Wooden Engraved Gifts in India",
+    description: SITE_DESCRIPTION,
+    images: ["/img/banner.webp"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   icons: { icon: "/favicon.ico" },
 };
 
@@ -32,9 +87,51 @@ export default function SiteRootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Vishwakarma Gifts",
+    url: SITE_URL,
+    logo: `${SITE_URL}/img/logo.svg`,
+    description: SITE_DESCRIPTION,
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+91-8824942813",
+      contactType: "customer service",
+      areaServed: "IN",
+      availableLanguage: ["en", "hi"],
+    },
+    sameAs: [
+      "https://www.facebook.com/",
+      "https://www.instagram.com/",
+      "https://www.youtube.com/",
+    ],
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Vishwakarma Gifts",
+    url: SITE_URL,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${SITE_URL}/products?type={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <html lang="en" className={poppins.variable}>
       <head>
+        {/* Preconnect to third-party origins so the browser can start TLS
+            handshakes in parallel with HTML parsing. Big perceived-perf win. */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="" />
+        <link rel="preconnect" href="https://ajax.googleapis.com" crossOrigin="" />
+        <link rel="preconnect" href="https://unpkg.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+        <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
@@ -55,6 +152,9 @@ export default function SiteRootLayout({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
         />
+
+        <JsonLd data={organizationJsonLd} />
+        <JsonLd data={websiteJsonLd} />
       </head>
       <body className={poppins.className}>
         <AuthProvider>
@@ -65,13 +165,11 @@ export default function SiteRootLayout({
           </CartProvider>
         </AuthProvider>
 
-        {/* Vendor JS — jQuery first, then Owl (depends on jQuery), then Bootstrap, AOS */}
+        {/* Vendor JS — jQuery + Bootstrap stay afterInteractive because the
+            cart offcanvas needs Bootstrap to be ready quickly. Owl + AOS are
+            below-the-fold animations so we lazy-load them. */}
         <Script
           src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"
           strategy="afterInteractive"
         />
         <Script
@@ -79,8 +177,12 @@ export default function SiteRootLayout({
           strategy="afterInteractive"
         />
         <Script
+          src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"
+          strategy="lazyOnload"
+        />
+        <Script
           src="https://unpkg.com/aos@2.3.1/dist/aos.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
       </body>
     </html>
