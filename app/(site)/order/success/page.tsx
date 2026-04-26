@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { readSession } from "@/lib/auth";
 import { getOrderByRazorpayId, type OrderSummary } from "@/lib/queries/orders";
 import "./success.css";
 
@@ -36,11 +37,12 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
   if (razorpayOrderId) {
     const cookieStore = await cookies();
     const guestId = cookieStore.get("guest_id")?.value ?? null;
+    const session = await readSession();
     try {
       order = await getOrderByRazorpayId({
         razorpayOrderId,
         guestId,
-        userId: null,
+        userId: session?.sub ?? null,
       });
     } catch (err) {
       console.error("[order/success] DB error:", err);

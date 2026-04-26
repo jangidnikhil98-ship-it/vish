@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { markOrderFailed, markOrderPaid } from "@/lib/queries/orders";
+import { notifyOrderPaid } from "@/app/api/checkout/verify-payment/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,11 +50,20 @@ export async function POST(req: NextRequest) {
       case "payment.captured":
       case "payment.authorized":
         if (entity.id) {
-          await markOrderPaid({
+          const updated = await markOrderPaid({
             razorpayOrderId: entity.order_id,
             razorpayPaymentId: entity.id,
             rawPaymentJson: rawEntity,
           });
+          // Only fire notifications on the first transition to "paid" —
+          // verify-payment usually beats us to it; this branch handles
+          // the case where the user closed the browser too early.
+          if (updated && !updated.wasAlreadyPaid) {
+            void notifyOrderPaid({
+              orderId: updated.orderId,
+              razorpayPaymentId: entity.id,
+            });
+          }
         }
         break;
       case "payment.failed":

@@ -1499,7 +1499,7 @@ a.view-all-btn {
 .footer {
   background-color: #311f0d;
   color: #fff;
-  padding: 50px 20px 0px;
+  padding: 36px 20px 0px;
   position: relative;
 }
 .footer::before {
@@ -1521,7 +1521,7 @@ a.view-all-btn {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
   position: relative;
   z-index: 99;
 }
@@ -1529,29 +1529,74 @@ a.view-all-btn {
   flex: 1;
   min-width: 160px;
   margin-right: 40px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 .footer-section h4 {
   font-size: 18px;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 .footer-section ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 .footer-section ul li a {
   color: #ccc;
   text-decoration: none;
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-size: 14px;
 }
 .footer-section p,
 .footer-section a {
   font-size: 14px;
   color: #ccc;
-  line-height: 1.8;
+  line-height: 1.6;
   text-decoration: none;
+}
+
+/* ===================== Footer contact column (right side) ===================== */
+.footer-contact .footer-contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.footer-contact .footer-contact-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #ddd;
+  line-height: 1.4;
+}
+.footer-contact .footer-contact-list li i {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6c97f;
+  font-size: 13px;
+}
+.footer-contact .footer-contact-list li a {
+  color: #ddd;
+  text-decoration: none;
+  word-break: break-word;
+}
+.footer-contact .footer-contact-list li a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+@media (min-width: 992px) {
+  /* Right-align the contact column on desktop so it visually sits on the right side. */
+  .footer-contact { text-align: left; }
+}
+@media (max-width: 767px) {
+  .footer-contact .footer-contact-list li { font-size: 13px; }
 }
 .subscribe-section {
   margin-bottom: 40px;
@@ -1586,10 +1631,12 @@ a.view-all-btn {
 }
 .footer-bottom {
   border-top: 1px solid #600000;
-  padding-top: 20px;
+  padding-top: 14px;
+  padding-bottom: 6px;
   text-align: center;
   color: #ccc;
 }
+.footer-bottom p { margin-bottom: 0; }
 .logo-social {
   display: flex;
   justify-content: center;
@@ -1611,32 +1658,46 @@ a.view-all-btn {
 
 /* ===================== INNER BANNER ===================== */
 .inner-banner {
-  background-size: cover;
-  height: auto;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
   position: relative;
-  background: #6f4b2a;
-  padding: 60px 0px;
+  width: 100%;
+  text-align: center;
+  padding: 64px 16px 36px;
+  background: linear-gradient(180deg, #fdf7ef 0%, #ffffff 100%);
+  border-bottom: 1px solid rgba(96, 56, 19, 0.08);
 }
 .inner-banner .row {
   position: relative;
-  z-index: 999;
+  z-index: 1;
 }
+.inner-banner h1,
 .inner-banner h2 {
-  color: #fff;
-  font-size: 37px;
-  margin-bottom: 20px;
+  color: #603813;
+  font-family: var(--font-libre-bodoni, "Libre Bodoni"), serif;
+  font-size: 40px;
   font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.2px;
+  margin: 0 auto 14px;
+  max-width: 900px;
+}
+/* Decorative underline accent under the page title. */
+.inner-banner h1::after,
+.inner-banner h2::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: #603813;
+  border-radius: 3px;
+  margin: 14px auto 0;
 }
 .inner-banner p {
-  color: #c3b6b6;
-  font-size: 15px;
+  color: rgba(96, 56, 19, 0.78);
+  font-size: 16px;
   font-weight: 500;
-  margin-bottom: 5px;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 640px;
 }
 
 /* ===================== BLOG ===================== */
@@ -1984,43 +2045,6 @@ a.view-all-btn {
   padding: 35px 0px;
 }
 
-/* ===================== Products page heading ===================== */
-.products-page-heading {
-  text-align: center;
-  padding: 56px 0 24px;
-  background: linear-gradient(180deg, #fdf7ef 0%, #ffffff 100%);
-  border-bottom: 1px solid rgba(96, 56, 19, 0.08);
-}
-.products-page-heading h1 {
-  color: #603813;
-  font-family: var(--font-libre-bodoni, "Libre Bodoni"), serif;
-  font-size: 38px;
-  font-weight: 600;
-  margin: 0 auto;
-  line-height: 1.15;
-  letter-spacing: 0.2px;
-}
-.products-page-heading .heading-underline {
-  display: block;
-  width: 60px;
-  height: 3px;
-  background: #603813;
-  border-radius: 3px;
-  margin: 14px auto 0;
-}
-@media (max-width: 768px) {
-  .products-page-heading {
-    padding: 36px 0 18px;
-  }
-  .products-page-heading h1 {
-    font-size: 26px;
-  }
-  .products-page-heading .heading-underline {
-    width: 48px;
-    height: 2px;
-    margin-top: 10px;
-  }
-}
 .produc-type select {
   border: 1px solid rgba(226, 232, 240, 1);
   background: rgba(241, 245, 249, 1);
@@ -3324,8 +3348,12 @@ section.success-section {
   .blog-text-single { width: 100%; }
   .order-summary { position: static; }
   .woodren-sales { flex-direction: column; column-gap: 0; }
-  .inner-banner h2 { font-size: 27px; }
-  .inner-banner { padding: 40px 0px; }
+  .inner-banner { padding: 36px 16px 22px; }
+  .inner-banner h1,
+  .inner-banner h2 { font-size: 26px; margin-bottom: 10px; }
+  .inner-banner h1::after,
+  .inner-banner h2::after { width: 48px; height: 2px; margin-top: 10px; }
+  .inner-banner p { font-size: 14px; }
   /* File 2 unique: category slider mobile */
   .category-slider {
     flex-wrap: nowrap;

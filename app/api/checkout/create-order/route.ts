@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { fail, handleError, ok } from "@/lib/api";
+import { readSession } from "@/lib/auth";
 import { createOrderSchema } from "@/lib/validators/checkout";
 import { createOrderWithItems, priceCart } from "@/lib/queries/orders";
 import { razorpay, razorpayKeyId } from "@/lib/razorpay";
@@ -30,9 +31,14 @@ export async function POST(req: NextRequest) {
     const json = await req.json().catch(() => null);
     const parsed = createOrderSchema.safeParse(json);
     if (!parsed.success) {
-      return fail("Invalid checkout payload", 422, {
-        errors: parsed.error.flatten().fieldErrors,
-      });
+      // Build a {dotted.path: ["msg"]} map so the client can show per-field
+      // hints (e.g. shipping.phone -> "Phone must be exactly 10 digits").
+      const errors: Record<string, string[]> = {};
+      for (const issue of parsed.error.issues) {
+        const path = issue.path.join(".") || "_";
+        (errors[path] ??= []).push(issue.message);
+      }
+      return fail("Invalid checkout payload", 422, { errors });
     }
     const { shipping, items } = parsed.data;
 
@@ -60,6 +66,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Attach the order to the logged-in user (if any) so they can see it on
+    // their /dashboard/orders page later.
+    const session = await readSession();
+    const userId = session?.sub ?? null;
+
     // Razorpay expects integer paise.
     const amountInPaise = Math.round(priced.subtotal * 100);
 
@@ -82,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     // 2) Persist the order, items, shipping, payment row in one transaction.
     const dbOrder = await createOrderWithItems({
-      userId: null, // TODO: wire in once auth lands
+      userId,
       guestId,
       shipping,
       pricedCart: priced,

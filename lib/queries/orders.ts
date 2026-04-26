@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   orderItems,
@@ -265,12 +265,21 @@ export async function createOrderWithItems(params: {
 /**
  * Mark an order paid + update payment row. Looks up by razorpay_order_id
  * (matches the lookup in PaymentController::success).
+ *
+ * Returns `wasAlreadyPaid: true` when the payment row was already
+ * `completed` before this call — callers use that to avoid sending the
+ * order-confirmation email twice (once from verify-payment, once from the
+ * webhook).
  */
 export async function markOrderPaid(params: {
   razorpayOrderId: string;
   razorpayPaymentId: string;
   rawPaymentJson: string | null;
-}): Promise<{ orderId: number; email: string | null } | null> {
+}): Promise<{
+  orderId: number;
+  email: string | null;
+  wasAlreadyPaid: boolean;
+} | null> {
   return db.transaction(async (tx) => {
     const [payment] = await tx
       .select()
@@ -280,6 +289,8 @@ export async function markOrderPaid(params: {
       .limit(1);
 
     if (!payment) return null;
+
+    const wasAlreadyPaid = payment.status === "completed";
 
     await tx
       .update(paymentDetails)
@@ -304,8 +315,91 @@ export async function markOrderPaid(params: {
     return {
       orderId: payment.order_id,
       email: shipping?.email ?? null,
+      wasAlreadyPaid,
     };
   });
+}
+
+/**
+ * Aggregated "everything we need to send a notification email/WhatsApp".
+ * Pulls items + shipping + the public order_number in a single round trip
+ * by id. Used after `markOrderPaid` returns.
+ */
+export type OrderNotificationData = {
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  totalAmount: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    size: string | null;
+    variation: string | null;
+    giftWrap: string;
+  }>;
+  shipping: {
+    address: string | null;
+    apartment: string | null;
+    city: string | null;
+    state: string | null;
+    pincode: string | null;
+    phone: string | null;
+  } | null;
+};
+
+export async function getOrderForNotification(
+  orderId: number,
+): Promise<OrderNotificationData | null> {
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+  if (!order) return null;
+
+  const [shippingRows, itemRows] = await Promise.all([
+    db
+      .select()
+      .from(shippingDetails)
+      .where(eq(shippingDetails.order_id, orderId))
+      .limit(1),
+    db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.order_id, orderId)),
+  ]);
+  const shipping = shippingRows[0] ?? null;
+
+  return {
+    orderNumber: order.order_number,
+    customerName: shipping
+      ? `${shipping.first_name ?? ""} ${shipping.last_name ?? ""}`.trim() ||
+        "Customer"
+      : "Customer",
+    customerEmail: shipping?.email ?? "",
+    customerPhone: shipping?.phone ?? null,
+    totalAmount: Number(order.grand_total ?? 0),
+    items: itemRows.map((it) => ({
+      name: it.product_name ?? "Product",
+      quantity: Number(it.quantity ?? 1),
+      price: Number(it.price ?? 0),
+      size: it.product_size,
+      variation: it.variation_option,
+      giftWrap: it.gift_wrap,
+    })),
+    shipping: shipping
+      ? {
+          address: shipping.address,
+          apartment: shipping.apartment,
+          city: shipping.city,
+          state: shipping.state,
+          pincode: shipping.pincode,
+          phone: shipping.phone,
+        }
+      : null,
+  };
 }
 
 /* ============================================================
@@ -444,4 +538,242 @@ export async function markOrderFailed(
       .set({ payment_status: "failed" })
       .where(eq(orders.id, payment.order_id));
   });
+}
+
+/* ============================================================
+   USER-SCOPED READS  (powering /dashboard/*)
+   ============================================================ */
+
+export type UserOrderListItem = {
+  id: number;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  grandTotal: number;
+  quantity: number;
+  itemCount: number;
+  createdAt: Date | null;
+};
+
+export type UserOrderListResult = {
+  data: UserOrderListItem[];
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+};
+
+/**
+ * Paginated list of orders that belong to a single logged-in user.
+ *
+ * Sorted newest first. Includes a per-row `itemCount` (number of distinct
+ * line items) so the dashboard can show "3 items" without loading the
+ * order_items table for every row.
+ */
+export async function listUserOrders(params: {
+  userId: number;
+  page?: number;
+  perPage?: number;
+}): Promise<UserOrderListResult> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const perPage = Math.min(50, Math.max(1, Math.floor(params.perPage ?? 10)));
+
+  const itemCountSql = sql<number>`(
+    SELECT COUNT(*) FROM ${orderItems} oi
+    WHERE oi.order_id = ${orders.id}
+  )`;
+
+  const [rows, totalRow] = await Promise.all([
+    db
+      .select({
+        id: orders.id,
+        orderNumber: orders.order_number,
+        status: orders.status,
+        paymentStatus: orders.payment_status,
+        grandTotal: orders.grand_total,
+        quantity: orders.quantity,
+        createdAt: orders.created_at,
+        itemCount: itemCountSql,
+      })
+      .from(orders)
+      .where(eq(orders.user_id, params.userId))
+      .orderBy(desc(orders.id))
+      .limit(perPage)
+      .offset((page - 1) * perPage),
+    db
+      .select({ total: sql<number>`COUNT(*)` })
+      .from(orders)
+      .where(eq(orders.user_id, params.userId)),
+  ]);
+
+  const total = Number(totalRow[0]?.total ?? 0);
+
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      orderNumber: r.orderNumber,
+      status: r.status,
+      paymentStatus: r.paymentStatus,
+      grandTotal: Number(r.grandTotal ?? 0),
+      quantity: Number(r.quantity ?? 0),
+      itemCount: Number(r.itemCount ?? 0),
+      createdAt: r.createdAt,
+    })),
+    page,
+    perPage,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / perPage)),
+  };
+}
+
+/**
+ * Look up one order owned by `userId`, by its public `order_number`.
+ * Returns null if the order does not exist OR it belongs to someone else
+ * (so a stranger cannot read another customer's order via URL guessing).
+ */
+export async function getUserOrderByNumber(params: {
+  userId: number;
+  orderNumber: string;
+}): Promise<OrderSummary | null> {
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(
+      and(
+        eq(orders.order_number, params.orderNumber),
+        eq(orders.user_id, params.userId),
+      ),
+    )
+    .limit(1);
+
+  if (!order) return null;
+
+  const [shippingRows, itemRows] = await Promise.all([
+    db
+      .select()
+      .from(shippingDetails)
+      .where(eq(shippingDetails.order_id, order.id))
+      .limit(1),
+    db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.order_id, order.id)),
+  ]);
+  const shipping = shippingRows[0] ?? null;
+
+  return {
+    id: order.id,
+    orderNumber: order.order_number,
+    status: order.status,
+    paymentStatus: order.payment_status,
+    grandTotal: Number(order.grand_total ?? 0),
+    quantity: Number(order.quantity ?? 0),
+    createdAt: order.created_at,
+    shipping: shipping
+      ? {
+          firstName: shipping.first_name,
+          lastName: shipping.last_name,
+          email: shipping.email,
+          phone: shipping.phone,
+          address: shipping.address,
+          apartment: shipping.apartment,
+          city: shipping.city,
+          state: shipping.state,
+          pincode: shipping.pincode,
+        }
+      : null,
+    items: itemRows.map((it) => ({
+      productId: it.product_id,
+      productName: it.product_name,
+      productSize: it.product_size,
+      quantity: it.quantity,
+      price: Number(it.price ?? 0),
+      variation: it.variation_option,
+      giftWrap: it.gift_wrap,
+    })),
+  };
+}
+
+export type UserSavedAddress = {
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  address: string | null;
+  apartment: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  /** Most recent time we saw this address in an order. */
+  lastUsedAt: Date | null;
+};
+
+/**
+ * Best-effort "saved addresses" — we don't have a dedicated table for the
+ * customer-facing addresses (Laravel never had one either), so we collect
+ * the unique shipping addresses from this user's past orders, newest first.
+ */
+export async function listUserSavedAddresses(
+  userId: number,
+): Promise<UserSavedAddress[]> {
+  const rows = await db
+    .select({
+      firstName: shippingDetails.first_name,
+      lastName: shippingDetails.last_name,
+      phone: shippingDetails.phone,
+      address: shippingDetails.address,
+      apartment: shippingDetails.apartment,
+      city: shippingDetails.city,
+      state: shippingDetails.state,
+      pincode: shippingDetails.pincode,
+      createdAt: shippingDetails.created_at,
+    })
+    .from(shippingDetails)
+    .where(eq(shippingDetails.user_id, userId))
+    .orderBy(desc(shippingDetails.id))
+    .limit(50);
+
+  // Deduplicate by (pincode + apartment + state) — same address typed twice
+  // shouldn't appear twice on the dashboard.
+  const seen = new Set<string>();
+  const out: UserSavedAddress[] = [];
+  for (const r of rows) {
+    const key = [
+      r.pincode ?? "",
+      (r.apartment ?? "").trim().toLowerCase(),
+      (r.address ?? "").trim().toLowerCase(),
+      (r.state ?? "").trim().toLowerCase(),
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...r, lastUsedAt: r.createdAt });
+  }
+  return out;
+}
+
+export type UserOrderStats = {
+  totalOrders: number;
+  paidOrders: number;
+  pendingOrders: number;
+  totalSpent: number;
+};
+
+export async function getUserOrderStats(
+  userId: number,
+): Promise<UserOrderStats> {
+  const [row] = await db
+    .select({
+      totalOrders: sql<number>`COUNT(*)`,
+      paidOrders: sql<number>`SUM(CASE WHEN ${orders.payment_status} = 'paid' THEN 1 ELSE 0 END)`,
+      pendingOrders: sql<number>`SUM(CASE WHEN ${orders.payment_status} = 'pending' THEN 1 ELSE 0 END)`,
+      totalSpent: sql<number>`COALESCE(SUM(CASE WHEN ${orders.payment_status} = 'paid' THEN ${orders.grand_total} ELSE 0 END), 0)`,
+    })
+    .from(orders)
+    .where(eq(orders.user_id, userId));
+
+  return {
+    totalOrders: Number(row?.totalOrders ?? 0),
+    paidOrders: Number(row?.paidOrders ?? 0),
+    pendingOrders: Number(row?.pendingOrders ?? 0),
+    totalSpent: Number(row?.totalSpent ?? 0),
+  };
 }

@@ -185,8 +185,8 @@ export default function CheckoutClient({
     if (!/^\d{6}$/.test(form.pincode))
       next.pincode = "PIN code must be 6 digits";
     else if (pincodeStatus === "invalid") next.pincode = "Invalid PIN code";
-    if (!/^\d{10,15}$/.test(form.phone))
-      next.phone = "Enter a valid phone number";
+    if (!/^\d{10}$/.test(form.phone))
+      next.phone = "Phone must be exactly 10 digits";
     setErrors(next);
     return Object.keys(next).length === 0;
   }, [form, pincodeStatus]);
@@ -247,10 +247,21 @@ export default function CheckoutClient({
         });
         const created = (await createRes.json()) as CreateOrderResponse;
         if (!created.success || !created.data) {
+          // Surface field-level errors (e.g. phone, pincode) instead of the
+          // generic "Invalid checkout payload" message returned by Zod.
+          const fieldMsg = created.errors
+            ? Object.entries(created.errors)
+                .map(
+                  ([field, msgs]) =>
+                    `${field}: ${(msgs ?? []).join(", ")}`,
+                )
+                .join(" • ")
+            : "";
           setBanner({
             kind: "error",
             text:
-              created.message ??
+              fieldMsg ||
+              created.message ||
               "We couldn't start your order. Please try again.",
           });
           setSubmitting(false);
@@ -271,6 +282,38 @@ export default function CheckoutClient({
           prefill,
           notes: { source: "next.js-checkout" },
           theme: { color: "#613a18" },
+          // Explicitly enable UPI alongside the other common methods so the
+          // checkout always shows a "Pay via UPI" option (UPI ID + apps + QR).
+          method: {
+            upi: true,
+            card: true,
+            netbanking: true,
+            wallet: true,
+          },
+          // Promote UPI to the top of the modal as a preferred block and
+          // explicitly enable all three UPI flows so the user always gets:
+          //   - "collect"  → enter UPI ID (e.g. name@okaxis) input box
+          //   - "intent"   → choose GPay/PhonePe/Paytm/BHIM app (mobile)
+          //   - "qr"       → scan a UPI QR (desktop)
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: "Pay via UPI",
+                  instruments: [
+                    {
+                      method: "upi",
+                      flows: ["collect", "intent", "qr"],
+                    },
+                  ],
+                },
+              },
+              sequence: ["block.upi"],
+              preferences: {
+                show_default_blocks: true,
+              },
+            },
+          },
           modal: {
             ondismiss: () => setSubmitting(false),
           },
@@ -480,15 +523,16 @@ export default function CheckoutClient({
                     name="phone"
                     autoComplete="tel"
                     inputMode="numeric"
+                    maxLength={10}
                     value={form.phone}
                     onChange={(e) =>
                       setField(
                         "phone",
-                        e.target.value.replace(/\D/g, "").slice(0, 15),
+                        e.target.value.replace(/\D/g, "").slice(0, 10),
                       )
                     }
                     className={`form-control mb-1 ${errors.phone ? "is-invalid" : ""}`}
-                    placeholder="Phone"
+                    placeholder="Phone (10 digits)"
                     required
                   />
                   {errors.phone && (
@@ -521,8 +565,8 @@ export default function CheckoutClient({
 
                 <div className="payment-box">
                   <p>
-                    <strong>Razorpay Payment Gateway</strong> (UPI, Cards &
-                    NetBanking)
+                    <strong>Razorpay Payment Gateway</strong> — UPI (GPay /
+                    PhonePe / Paytm / BHIM), Cards, NetBanking &amp; Wallets
                   </p>
                   <div className="d-flex justify-content-start gap-2 mb-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -62,7 +62,7 @@ export default function Footer() {
     <>
       <footer className="footer">
         <div className="container">
-          <div className="row footer-content mb-5">
+          <div className="row footer-content mb-3">
             
             {/* Important Links */}
             <div className="col-md-4 footer-section">
@@ -86,29 +86,30 @@ export default function Footer() {
             </div>
 
             {/* Contact */}
-            <div className="col-md-4 footer-section contact-info">
-              <h4>Contact Information</h4>
-              <p>
-                <strong>Vishwakarma Gifts</strong> specializes in crafting unique,
-                personalized gifts that express your love and make relationships stronger.
-              </p>
-              <p>
-                <strong>Whatsapp :</strong>{" "}
-                <a href="tel:+918824942813">+91 8824942813</a>
-              </p>
-              <p>
-                <strong>Email :</strong>{" "}
-                <a href="mailto:giftsvishwakarma@gmail.com">
-                  giftsvishwakarma@gmail.com
-                </a>
-              </p>
-              <p><strong>Jaipur, Rajasthan – 302013</strong></p>
+            <div className="col-md-4 footer-section footer-contact contact-info">
+              <h4>Contact Us</h4>
+              <ul className="footer-contact-list">
+                <li>
+                  <i className="fab fa-whatsapp" aria-hidden="true" />
+                  <a href="tel:+918824942813">+91 8824942813</a>
+                </li>
+                <li>
+                  <i className="fas fa-envelope" aria-hidden="true" />
+                  <a href="mailto:giftsvishwakarma@gmail.com">
+                    giftsvishwakarma@gmail.com
+                  </a>
+                </li>
+                <li>
+                  <i className="fas fa-map-marker-alt" aria-hidden="true" />
+                  <span>Jaipur, Rajasthan – 302013</span>
+                </li>
+              </ul>
             </div>
 
           </div>
 
           {/* Bottom */}
-          <div className="row footer-bottom border-top pt-4 text-center">
+          <div className="row footer-bottom border-top pt-3 text-center">
             <div className="col-12">
               <p style={{ color: "white" }}>
                 © {new Date().getFullYear()}, Vishwakarma Gifts All Rights Reserved.

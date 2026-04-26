@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fail, handleError } from "@/lib/api";
 import { createSession, hashPassword } from "@/lib/auth";
+import { sendWelcomeEmail } from "@/lib/email";
 import { createUser, getUserByEmail } from "@/lib/queries/users";
 import { registerSchema } from "@/lib/validators/auth";
 
@@ -35,6 +36,13 @@ export async function POST(req: Request) {
     });
 
     await createSession({ sub: userId, email });
+
+    // Send the welcome email in the background. Never block the signup
+    // response on email — a slow SMTP server or a misconfigured mailbox
+    // shouldn't make the user wait for their account.
+    void sendWelcomeEmail({ to: email, firstName: first_name }).catch((err) => {
+      console.error("[register] welcome email failed:", err);
+    });
 
     return NextResponse.json({
       success: true,

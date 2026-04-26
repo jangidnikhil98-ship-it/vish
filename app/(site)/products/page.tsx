@@ -124,10 +124,9 @@ export default async function ProductsPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <section className="products-page-heading">
+      <section className="inner-banner">
         <div className="container">
           <h1>{headingTitle}</h1>
-          <span className="heading-underline" aria-hidden="true" />
         </div>
       </section>
 
