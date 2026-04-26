@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/admin/products/images/[id]/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"E:\\vish-main\\vish-main\\app\\api\\admin\\products\\images\\[id]\\route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "functions": {
+    "/_middleware": {
+      "runtime": "nodejs",
+      "matchers": [
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
+          "originalSource": "/admin/:path*"
+        },
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
+          "originalSource": "/api/admin/:path*"
+        }
+      ]
+    },
+    "/api/admin/blogs": {},
+    "/api/admin/blogs/[id]": {},
+    "/api/admin/blogs/[id]/status": {},
+    "/api/admin/inquiries/[id]": {},
+    "/api/admin/orders/[id]": {},
+    "/api/admin/orders/[id]/status": {},
+    "/api/admin/products": {},
+    "/api/admin/products/[id]": {},
+    "/api/admin/products/[id]/status": {},
+    "/api/admin/products/images/[id]": {},
+    "/api/admin/settings/password": {},
+    "/api/admin/settings/profile": {},
+    "/api/admin/users/[id]": {},
+    "/api/admin/users/[id]/status": {},
+    "/api/auth/forgot-password": {},
+    "/api/auth/login": {},
+    "/api/auth/logout": {},
+    "/api/auth/me": {},
+    "/api/auth/profile": {},
+    "/api/auth/register": {},
+    "/api/auth/reset-password": {},
+    "/api/blogs": {},
+    "/api/blogs/[slug]": {},
+    "/api/checkout/create-order": {},
+    "/api/checkout/verify-payment": {},
+    "/api/contact": {},
+    "/api/payment/webhook": {},
+    "/api/products": {},
+    "/api/products/[slug]": {},
+    "/api/products/search": {},
+    "/api/upload/product-image": {}
+  }
+}

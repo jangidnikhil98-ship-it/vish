@@ -14,7 +14,14 @@
 /coverage
 
 # next.js
-/.next/
+# NOTE: the `/.next/` *production* build output is intentionally tracked
+# so the live cPanel server can `git pull` an already-built bundle (the
+# host hits process limits on `next build`). The dev-mode artifacts and
+# build caches are huge and useless on the server, so they stay ignored.
+/.next/cache/
+/.next/dev/
+/.next/diagnostics/
+/.next/trace
 /out/
 
 # production
