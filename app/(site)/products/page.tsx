@@ -83,26 +83,68 @@ export async function generateMetadata({
 /* ---------- Page ---------- */
 export default async function ProductsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
-  const type = normaliseType(sp.type);
+  const requestedType = normaliseType(sp.type);
   const page = Math.max(1, Number(sp.page ?? 1) || 1);
-  const title = type ? TITLE_MAP[type] : TITLE_MAP.default;
 
   let result: ProductListResult;
   try {
-    result = await listProducts({ type, page, perPage: 16 });
+    result = await listProducts({ type: requestedType, page, perPage: 16 });
   } catch (err) {
     console.error("[products page] DB unavailable:", err);
     result = { data: [], page: 1, perPage: 16, total: 0, totalPages: 1 };
   }
 
+  /**
+   * Graceful fallback: if the user clicked a category (Birthday, Anniversary,
+   * etc.) but it has no live products yet, fall back to listing ALL products
+   * instead of showing an empty page. We track whether we did this so we can
+   * show a small banner explaining the switch.
+   */
+  let usedFallback = false;
+  if (requestedType && result.total === 0) {
+    try {
+      result = await listProducts({
+        type: undefined,
+        page: 1,
+        perPage: 16,
+      });
+      usedFallback = true;
+    } catch (err) {
+      console.error("[products page] fallback DB error:", err);
+    }
+  }
+
+  // Pagination links must NOT keep the type when we're in fallback mode,
+  // otherwise clicking "page 2" would return the user to the empty category.
+  const paginationType = usedFallback ? undefined : requestedType;
+  const requestedTitle = requestedType
+    ? TITLE_MAP[requestedType]
+    : TITLE_MAP.default;
+  const headingTitle = usedFallback ? TITLE_MAP.default : requestedTitle;
+
   return (
     <>
-      <div className="search-bar">
-        <h2>{title}</h2>
-      </div>
+      <section className="products-page-heading">
+        <div className="container">
+          <h1>{headingTitle}</h1>
+          <span className="heading-underline" aria-hidden="true" />
+        </div>
+      </section>
 
       <section className="products-section">
         <div className="container">
+          {usedFallback && (
+            <div
+              className="alert alert-info text-center mb-4"
+              role="status"
+              style={{ fontSize: "0.95rem" }}
+            >
+              No items are listed under{" "}
+              <strong>{requestedTitle}</strong> right now — showing all
+              products instead.
+            </div>
+          )}
+
           <div
             className="row text-center justify-content-center g-4"
             id="product-grid"
@@ -118,7 +160,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
             <Pagination
               page={result.page}
               totalPages={result.totalPages}
-              type={type}
+              type={paginationType}
             />
           )}
         </div>

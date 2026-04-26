@@ -494,17 +494,21 @@ export default function Header() {
                           </button>
 
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             className="quantity-input"
                             data-id={item.id}
-                            value={item.quantity}
-                            min={1}
+                            value={Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1}
                             onChange={(e) => {
-                              const v = parseInt(e.target.value, 10);
+                              const raw = e.target.value.replace(/[^0-9]/g, "");
+                              if (raw === "") return;
+                              const v = parseInt(raw, 10);
                               if (!Number.isNaN(v) && v >= 1) {
                                 updateQuantity(item.id, v);
                               }
                             }}
+                            aria-label={`Quantity for ${item.name}`}
                           />
 
                           <button

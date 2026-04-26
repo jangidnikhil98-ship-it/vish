@@ -85,6 +85,24 @@ type Errors = Partial<
   Record<"front_message" | "front_image" | "back_message" | "back_image", string>
 >;
 
+/**
+ * One side's upload state.
+ *  - `preview` is an in-memory blob URL we show instantly so the user sees
+ *    their photo before the network round-trip finishes.
+ *  - `status` is "uploading" while we compress + POST, "done" once the
+ *    server returns a stored path, "error" on failure.
+ *  - `promise` lets `Add to Cart` await an in-flight upload silently if the
+ *    user clicks before it finishes — no more blocking the whole UI.
+ */
+type UploadSlot = {
+  fileName: string;
+  preview: string;
+  status: "uploading" | "done" | "error";
+  serverPath?: string;
+  error?: string;
+  promise?: Promise<string>;
+};
+
 export function Form({
   productId,
   productType,
@@ -120,25 +138,62 @@ export function Form({
   /* ----- customisation form state ----- */
   const [frontMessage, setFrontMessage] = useState("");
   const [backMessage, setBackMessage] = useState("");
-  const [frontImageUrl, setFrontImageUrl] = useState("");
-  const [backImageUrl, setBackImageUrl] = useState("");
-  const [frontFileName, setFrontFileName] = useState("");
-  const [backFileName, setBackFileName] = useState("");
+  const [frontUpload, setFrontUpload] = useState<UploadSlot | null>(null);
+  const [backUpload, setBackUpload] = useState<UploadSlot | null>(null);
 
   const [quantity, setQuantity] = useState(1);
   const [errors, setErrors] = useState<Errors>({});
-  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const frontFileRef = useRef<HTMLInputElement>(null);
   const backFileRef = useRef<HTMLInputElement>(null);
 
-  /* ----- compress + upload ----- */
-  const uploadImage = useCallback(
-    async (file: File, side: "front" | "back") => {
-      try {
-        setUploading(true);
+  /**
+   * Each slot holds a monotonic upload id. When the user picks a new file
+   * before the previous upload finishes, we bump the id; the in-flight
+   * promise's `.then` checks the id is still current before writing back
+   * to state, so stale results never overwrite a newer upload.
+   */
+  const uploadIdRef = useRef<{ front: number; back: number }>({
+    front: 0,
+    back: 0,
+  });
 
+  /* Revoke any blob preview URLs when the component unmounts so we don't
+     leak memory across page navigations. */
+  useEffect(() => {
+    return () => {
+      if (frontUpload?.preview) URL.revokeObjectURL(frontUpload.preview);
+      if (backUpload?.preview) URL.revokeObjectURL(backUpload.preview);
+    };
+    // We intentionally don't depend on the slots — the cleanup runs on unmount
+    // and the per-slot preview URLs are revoked in `startUpload` whenever the
+    // user picks a new file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Optimistic upload: show preview instantly, run compression + POST in
+   * the background. Returns the promise so callers (Add to Cart) can await
+   * it if they click before the upload finishes.
+   */
+  const startUpload = useCallback(
+    (file: File, side: "front" | "back"): Promise<string> => {
+      uploadIdRef.current[side] += 1;
+      const myId = uploadIdRef.current[side];
+      const setSlot = side === "front" ? setFrontUpload : setBackUpload;
+      const errorKey = side === "front" ? "front_image" : "back_image";
+
+      // Free the previous preview URL (if any) before replacing it.
+      setSlot((prev) => {
+        if (prev?.preview) URL.revokeObjectURL(prev.preview);
+        return prev;
+      });
+
+      const preview = URL.createObjectURL(file);
+      const fileName = file.name;
+
+      const promise = (async (): Promise<string> => {
         const { default: imageCompression } = await import(
           "browser-image-compression"
         );
@@ -149,7 +204,6 @@ export function Form({
           useWebWorker: true,
           fileType: "image/jpeg",
         });
-
         const fd = new FormData();
         fd.append("image", compressed);
         const res = await fetch("/api/upload/product-image", {
@@ -160,25 +214,42 @@ export function Form({
         if (!res.ok || !json?.success) {
           throw new Error(json?.message ?? "Upload failed");
         }
-        const path = json.data.path as string;
-        if (side === "front") {
-          setFrontImageUrl(path);
-          setErrors((e) => ({ ...e, front_image: undefined }));
-        } else {
-          setBackImageUrl(path);
-          setErrors((e) => ({ ...e, back_image: undefined }));
-        }
-      } catch (err) {
-        console.error("[upload]", err);
-        const msg =
-          err instanceof Error ? err.message : "Upload error. Please try again.";
-        setErrors((e) => ({
-          ...e,
-          [side === "front" ? "front_image" : "back_image"]: msg,
-        }));
-      } finally {
-        setUploading(false);
-      }
+        return json.data.path as string;
+      })();
+
+      setSlot({
+        fileName,
+        preview,
+        status: "uploading",
+        promise,
+      });
+      setErrors((e) => ({ ...e, [errorKey]: undefined }));
+
+      promise
+        .then((path) => {
+          if (uploadIdRef.current[side] !== myId) return;
+          setSlot((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: "done",
+                  serverPath: path,
+                  promise: undefined,
+                }
+              : prev,
+          );
+        })
+        .catch((err: unknown) => {
+          if (uploadIdRef.current[side] !== myId) return;
+          const msg =
+            err instanceof Error ? err.message : "Upload failed. Please retry.";
+          setSlot((prev) =>
+            prev ? { ...prev, status: "error", error: msg, promise: undefined } : prev,
+          );
+          setErrors((e) => ({ ...e, [errorKey]: msg }));
+        });
+
+      return promise;
     },
     [],
   );
@@ -186,14 +257,12 @@ export function Form({
   const onFrontFile = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    setFrontFileName(f.name);
-    void uploadImage(f, "front");
+    void startUpload(f, "front");
   };
   const onBackFile = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    setBackFileName(f.name);
-    void uploadImage(f, "back");
+    void startUpload(f, "back");
   };
 
   /* ----- validation ----- */
@@ -202,24 +271,67 @@ export function Form({
     if (!frontMessage.trim())
       next.front_message =
         "Please enter the message you want to write on the frame.";
-    if (!frontImageUrl)
-      next.front_image = "Please upload the photo you want to customize.";
+    if (!frontUpload)
+      next.front_image = "Please choose the photo you want to customize.";
+    else if (frontUpload.status === "error")
+      next.front_image = frontUpload.error ?? "Upload failed. Please retry.";
     if (variation === "both_sides") {
       if (!backMessage.trim())
         next.back_message = "Please enter the back side message.";
-      if (!backImageUrl)
-        next.back_image = "Please upload the back side photo.";
+      if (!backUpload)
+        next.back_image = "Please choose the back side photo.";
+      else if (backUpload.status === "error")
+        next.back_image = backUpload.error ?? "Upload failed. Please retry.";
     }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
+  /**
+   * Resolves a slot's final server path. If the upload is still in flight,
+   * we silently await it; if it has already errored, we surface the error.
+   */
+  const resolveSlot = async (
+    slot: UploadSlot | null,
+    errorKey: "front_image" | "back_image",
+  ): Promise<string | null> => {
+    if (!slot) return null;
+    if (slot.serverPath) return slot.serverPath;
+    if (slot.status === "error") {
+      setErrors((e) => ({
+        ...e,
+        [errorKey]: slot.error ?? "Upload failed. Please retry.",
+      }));
+      return null;
+    }
+    if (slot.promise) {
+      try {
+        return await slot.promise;
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Upload failed. Please retry.";
+        setErrors((e) => ({ ...e, [errorKey]: msg }));
+        return null;
+      }
+    }
+    return null;
+  };
+
   /* ----- add to cart / buy now ----- */
-  const buildLineItem = () => {
+  const buildLineItem = async () => {
     if (!selectedSize) return null;
-    const lineId = `${productSlug}_${selectedSize.id}_${frontImageUrl.slice(
-      -8,
-    )}`;
+
+    const frontPath = await resolveSlot(frontUpload, "front_image");
+    if (!frontPath) return null;
+
+    let backPath = "";
+    if (variation === "both_sides") {
+      const resolved = await resolveSlot(backUpload, "back_image");
+      if (!resolved) return null;
+      backPath = resolved;
+    }
+
+    const lineId = `${productSlug}_${selectedSize.id}_${frontPath.slice(-8)}`;
     return {
       id: lineId,
       slug: productSlug,
@@ -234,47 +346,50 @@ export function Form({
       variation,
       frontMessage,
       backMessage: variation === "both_sides" ? backMessage : "",
-      frontImageUrl,
-      backImageUrl: variation === "both_sides" ? backImageUrl : "",
+      frontImageUrl: frontPath,
+      backImageUrl: backPath,
     };
+  };
+
+  const openCartDrawer = () => {
+    const el = document.getElementById("offcanvasExample");
+    if (!el || typeof window === "undefined") return;
+    const w = window as unknown as {
+      bootstrap?: {
+        Offcanvas: {
+          getOrCreateInstance: (e: HTMLElement) => { show: () => void };
+        };
+      };
+    };
+    if (w.bootstrap?.Offcanvas) {
+      w.bootstrap.Offcanvas.getOrCreateInstance(el).show();
+      return;
+    }
+    // Bootstrap JS hasn't loaded yet — show a manual fallback.
+    el.classList.add("show");
+    el.style.visibility = "visible";
+    document.body.style.overflow = "hidden";
+    if (!document.getElementById("__cart-backdrop")) {
+      const backdrop = document.createElement("div");
+      backdrop.id = "__cart-backdrop";
+      backdrop.className = "offcanvas-backdrop fade show";
+      backdrop.addEventListener("click", () => {
+        el.classList.remove("show");
+        document.body.style.overflow = "";
+        backdrop.remove();
+      });
+      document.body.appendChild(backdrop);
+    }
   };
 
   const onAddToCart = async () => {
     if (!validate() || submitting) return;
-    const item = buildLineItem();
-    if (!item) return;
     setSubmitting(true);
     try {
+      const item = await buildLineItem();
+      if (!item) return;
       addItem(item);
-      const el = document.getElementById("offcanvasExample");
-      if (el && typeof window !== "undefined") {
-        const w = window as unknown as {
-          bootstrap?: {
-            Offcanvas: {
-              getOrCreateInstance: (e: HTMLElement) => { show: () => void };
-            };
-          };
-        };
-        if (w.bootstrap?.Offcanvas) {
-          w.bootstrap.Offcanvas.getOrCreateInstance(el).show();
-        } else {
-          // Bootstrap JS hasn't loaded yet — show a manual fallback.
-          el.classList.add("show");
-          el.style.visibility = "visible";
-          document.body.style.overflow = "hidden";
-          if (!document.getElementById("__cart-backdrop")) {
-            const backdrop = document.createElement("div");
-            backdrop.id = "__cart-backdrop";
-            backdrop.className = "offcanvas-backdrop fade show";
-            backdrop.addEventListener("click", () => {
-              el.classList.remove("show");
-              document.body.style.overflow = "";
-              backdrop.remove();
-            });
-            document.body.appendChild(backdrop);
-          }
-        }
-      }
+      openCartDrawer();
     } finally {
       setSubmitting(false);
     }
@@ -282,10 +397,10 @@ export function Form({
 
   const onBuyNow = async () => {
     if (!validate() || submitting) return;
-    const item = buildLineItem();
-    if (!item) return;
     setSubmitting(true);
     try {
+      const item = await buildLineItem();
+      if (!item) return;
       addItem(item);
       router.push("/checkout");
     } finally {
@@ -297,7 +412,10 @@ export function Form({
   const finalPrice = selectedSize?.finalPrice ?? 0;
   const originalPrice = selectedSize?.price ?? 0;
   const discount = selectedSize?.discount ?? 0;
-  const cartDisabled = uploading || submitting;
+  // We deliberately do NOT disable Add to Cart while an upload is in flight —
+  // clicking it just awaits the in-flight upload silently. Only `submitting`
+  // (the actual cart add) disables the button.
+  const cartDisabled = submitting;
 
   return (
     <>
@@ -410,89 +528,27 @@ export function Form({
         )}
 
         {/* FRONT IMAGE UPLOAD */}
-        <div className="document-upload creat-artisttoken mb-sm-2 mb-0">
-          <div className="form-group">
-            <div
-              className="dropzone dropzone-single dz-clickable"
-              onClick={() => frontFileRef.current?.click()}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="dz-default dz-message">
-                <div className="upload-doc">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/img/frontend/upload.svg"
-                    alt=""
-                    className="img-fluid"
-                  />
-                </div>
-                <h6>Please upload the photo you want to customize.</h6>
-                <input
-                  ref={frontFileRef}
-                  type="file"
-                  id="front_image"
-                  accept="image/*"
-                  onChange={onFrontFile}
-                  style={{ display: "none" }}
-                />
-                <span className="file-name">{frontFileName}</span>
-                {errors.front_image && (
-                  <div className="invalid-feedback d-block">
-                    {errors.front_image}
-                  </div>
-                )}
-                {uploading && (
-                  <small className="text-muted d-block">
-                    Compressing & uploading…
-                  </small>
-                )}
-                {frontImageUrl && !uploading && (
-                  <small className="text-success d-block">Uploaded</small>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <UploadDropzone
+          slot={frontUpload}
+          label="Please upload the photo you want to customize."
+          inputId="front_image"
+          inputRef={frontFileRef}
+          onFileSelected={onFrontFile}
+          onRetry={() => frontFileRef.current?.click()}
+          error={errors.front_image}
+        />
 
         {/* BACK IMAGE UPLOAD */}
         {variation === "both_sides" && (
-          <div className="document-upload creat-artisttoken mb-sm-2 mb-0">
-            <div className="form-group">
-              <div
-                className="dropzone dropzone-single dz-clickable"
-                onClick={() => backFileRef.current?.click()}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="dz-default dz-message">
-                  <div className="upload-doc">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/img/frontend/upload.svg"
-                      alt=""
-                      className="img-fluid"
-                    />
-                  </div>
-                  <h6>Upload Back Image</h6>
-                  <input
-                    ref={backFileRef}
-                    type="file"
-                    id="back_image"
-                    accept="image/*"
-                    onChange={onBackFile}
-                    style={{ display: "none" }}
-                  />
-                  <span className="file-name">{backFileName}</span>
-                  {errors.back_image && (
-                    <div className="invalid-feedback d-block">
-                      {errors.back_image}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <UploadDropzone
+            slot={backUpload}
+            label="Upload Back Image"
+            inputId="back_image"
+            inputRef={backFileRef}
+            onFileSelected={onBackFile}
+            onRetry={() => backFileRef.current?.click()}
+            error={errors.back_image}
+          />
         )}
 
         {/* QUANTITY + ACTIONS */}
@@ -506,14 +562,18 @@ export function Form({
               -
             </button>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               id="mtr_quantity"
-              value={quantity}
-              min={1}
+              value={Number.isFinite(quantity) && quantity > 0 ? quantity : 1}
               onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
+                const raw = e.target.value.replace(/[^0-9]/g, "");
+                if (raw === "") return;
+                const v = parseInt(raw, 10);
                 if (!Number.isNaN(v) && v >= 1) setQuantity(v);
               }}
+              aria-label="Quantity"
             />
             <button
               type="button"
@@ -551,17 +611,153 @@ export function Form({
         </div>
       </div>
 
-      {/* GLOBAL UPLOAD OVERLAY (kept compatible with original .loderClass) */}
-      {uploading && (
-        <div className="loaded loderClass">
-          <div id="loader-wrapper" style={{ visibility: "visible" }}>
-            <div id="loader" />
-            <div className="loader-section section-left" />
-            <div className="loader-section section-right" />
+      {/*
+        Note: the old full-screen .loderClass overlay has been removed.
+        Uploads now run in the background while the rest of the form stays
+        interactive. Per-slot status is shown inside <UploadDropzone />.
+      */}
+    </>
+  );
+}
+
+/* ============================================================
+   UPLOAD DROPZONE
+   Shows the chosen photo's preview the moment a file is picked,
+   plus a small inline status indicator (Uploading… / Ready / Error).
+   ============================================================ */
+function UploadDropzone({
+  slot,
+  label,
+  inputId,
+  inputRef,
+  onFileSelected,
+  onRetry,
+  error,
+}: {
+  slot: UploadSlot | null;
+  label: string;
+  inputId: string;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onFileSelected: (e: ChangeEvent<HTMLInputElement>) => void;
+  onRetry: () => void;
+  error?: string;
+}) {
+  const hasPreview = !!slot?.preview;
+
+  return (
+    <div className="document-upload creat-artisttoken mb-sm-2 mb-0">
+      <div className="form-group">
+        <div
+          className="dropzone dropzone-single dz-clickable"
+          onClick={() => inputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+          }}
+          style={{ position: "relative" }}
+        >
+          <div className="dz-default dz-message">
+            {hasPreview ? (
+              <div
+                className="upload-doc"
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={slot.preview}
+                  alt={slot.fileName}
+                  style={{
+                    maxHeight: 140,
+                    maxWidth: "100%",
+                    objectFit: "contain",
+                    borderRadius: 8,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="upload-doc">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/img/frontend/upload.svg"
+                  alt=""
+                  className="img-fluid"
+                />
+              </div>
+            )}
+
+            <h6 style={{ marginTop: 8 }}>
+              {hasPreview ? "Click to change photo" : label}
+            </h6>
+
+            <input
+              ref={inputRef}
+              type="file"
+              id={inputId}
+              accept="image/*"
+              onChange={onFileSelected}
+              style={{ display: "none" }}
+            />
+
+            {slot && (
+              <div
+                className="d-flex align-items-center justify-content-center mt-1"
+                style={{ gap: 6, fontSize: "0.85rem", lineHeight: 1.2 }}
+              >
+                {slot.status === "uploading" && (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm text-secondary"
+                      role="status"
+                      aria-hidden="true"
+                      style={{ width: 12, height: 12, borderWidth: 2 }}
+                    />
+                    <small className="text-muted">
+                      Uploading in background…
+                    </small>
+                  </>
+                )}
+                {slot.status === "done" && (
+                  <small className="text-success fw-semibold">Ready ✓</small>
+                )}
+                {slot.status === "error" && (
+                  <>
+                    <small className="text-danger">
+                      {slot.error ?? "Upload failed"}
+                    </small>
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm p-0"
+                      style={{ fontSize: "0.85rem" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRetry();
+                      }}
+                    >
+                      Retry
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div
+                className="invalid-feedback d-block"
+                style={{ marginTop: 4 }}
+              >
+                {error}
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
 

@@ -1983,6 +1983,44 @@ a.view-all-btn {
 .products-section {
   padding: 35px 0px;
 }
+
+/* ===================== Products page heading ===================== */
+.products-page-heading {
+  text-align: center;
+  padding: 56px 0 24px;
+  background: linear-gradient(180deg, #fdf7ef 0%, #ffffff 100%);
+  border-bottom: 1px solid rgba(96, 56, 19, 0.08);
+}
+.products-page-heading h1 {
+  color: #603813;
+  font-family: var(--font-libre-bodoni, "Libre Bodoni"), serif;
+  font-size: 38px;
+  font-weight: 600;
+  margin: 0 auto;
+  line-height: 1.15;
+  letter-spacing: 0.2px;
+}
+.products-page-heading .heading-underline {
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: #603813;
+  border-radius: 3px;
+  margin: 14px auto 0;
+}
+@media (max-width: 768px) {
+  .products-page-heading {
+    padding: 36px 0 18px;
+  }
+  .products-page-heading h1 {
+    font-size: 26px;
+  }
+  .products-page-heading .heading-underline {
+    width: 48px;
+    height: 2px;
+    margin-top: 10px;
+  }
+}
 .produc-type select {
   border: 1px solid rgba(226, 232, 240, 1);
   background: rgba(241, 245, 249, 1);
@@ -2096,8 +2134,21 @@ a.view-all-btn {
   font-size: 21px;
   font-weight: 420;
   width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 0 4px;
+  background: transparent;
   color: rgba(22, 42, 38, 1);
   line-height: 20px;
+  -moz-appearance: textfield;   /* hide Firefox spinner */
+  appearance: textfield;
+}
+/* Hide WebKit/Blink number-input spinners which can visually clip the value
+   inside narrow flex containers (e.g. the cart quantity field). */
+.practice-plus-minus input::-webkit-outer-spin-button,
+.practice-plus-minus input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .prtyuj {
   align-items: self-start;
@@ -2401,12 +2452,15 @@ button.add-to-cart.donate-btn {
   background: rgb(226 211 194 / 26%);
   padding: 12px 12px;
   display: flex;
-  align-items: start;
+  /* Vertically center the three columns (image / details / total) so the
+     thumbnail and bold total price line up regardless of how many lines
+     the middle column wraps to. */
+  align-items: center;
   flex-wrap: nowrap;
   margin-bottom: 9px;
   margin-right: 7px;
   border-radius: 5px;
-  column-gap: 7px;
+  column-gap: 10px;
 }
 .addproduct-list.active {
   border: 1px solid rgba(120, 113, 108, 1);
@@ -2415,17 +2469,28 @@ button.add-to-cart.donate-btn {
 .addproduct-list .practice-plus-minus {
   margin: 0px 0px;
   height: 35px;
-  width: 60%;
+  /* Was 60% — too narrow once the +/- buttons took up their min-width and
+     left the quantity input with almost no room for 2-3 digit numbers. */
+  width: auto;
+  min-width: 130px;
+  max-width: 100%;
 }
 .addproduct-list .practice-plus-minus button {
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 18px;
+  /* Cart drawer is narrow — keep the +/- buttons compact so the quantity
+     input always has room to show 2-3 digits. */
+  min-width: 32px;
+  padding: 0 10px;
+  flex: 0 0 auto;
 }
 /* File 2 unique: font-size override for addproduct input */
 .addproduct-list .practice-plus-minus input {
   font-size: 17px;
+  /* Reserve enough room for "999" without truncation. */
+  min-width: 40px;
 }
 .pd-list {
   height: 400px;
@@ -2551,16 +2616,34 @@ a.gobasket {
   display: flex;
   align-items: self-start;
   column-gap: 14px;
-  width: 30%;
+  /* Fixed-size thumbnail so it can't be squeezed when the total price
+     column grows for larger totals like "Rs 9,999.00". */
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
 }
 .product-image-cart img {
-  width: 100%;
-  height: 100%;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 .pr-price {
   display: flex;
   align-items: self-start;
   flex-direction: column;
+  /* Take the remaining space and allow children with text-overflow:ellipsis
+     to actually clip (min-width:0 is the magic flexbox unblock). */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Long product names should ellipsize rather than push the total price
+   column off-screen. */
+.pr-price h2 {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pr-price p {
   color: rgba(22, 42, 38, 1);
@@ -2586,10 +2669,25 @@ a.gobasket {
   margin-bottom: 11px;
   padding-left: 0px;
 }
+.pr-price-yut {
+  /* Cap the right-hand "line total" column so a 4-5 digit total like
+     "Rs 9,999.00" can't push the image and middle column smaller. */
+  flex: 0 0 auto;
+  max-width: 110px;
+  text-align: right;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
 .pr-price-yut h2 {
-  font-size: 25px;
+  /* Was 25px — too large for the narrow cart drawer once totals reach
+     4 digits. 19px keeps the value prominent while always fitting. */
+  font-size: 19px;
   color: #000;
   font-weight: 700;
+  margin-bottom: 0;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .pr-price img {
   margin-left: 43px;
