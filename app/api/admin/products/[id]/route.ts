@@ -18,6 +18,27 @@ import {
   saveStorageFile,
   validateProductImage,
 } from "@/lib/admin-uploads";
+import { CACHE_TAGS, bustCache } from "@/lib/cache";
+
+/**
+ * Storefront pages are aggressively cached (`unstable_cache`). We must
+ * bust every product-related tag whenever an admin write happens so the
+ * customer-facing listing & detail pages reflect new images / prices /
+ * status flips immediately instead of after a 5-minute TTL.
+ *
+ * `getProductBySlug` only tags rows with the broad `products` tag, so
+ * busting that one alone covers slug detail pages too. We still bust the
+ * narrower tags explicitly to keep this future-proof if a query is ever
+ * added that uses only the narrower tag.
+ */
+function bustProductCaches(slug?: string | null): void {
+  bustCache(
+    CACHE_TAGS.products,
+    CACHE_TAGS.productList,
+    CACHE_TAGS.productSearch,
+  );
+  if (slug) bustCache(CACHE_TAGS.product(slug));
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -129,6 +150,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       }
     }
 
+    bustProductCaches(product.product_name_slug);
+
     return ok({ message: "Product updated successfully." });
   } catch (err) {
     if (err instanceof SyntaxError) {
@@ -156,6 +179,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
     if (!product) return fail("Product not found", 404);
 
     await deleteAdminProduct(id);
+    bustProductCaches(product.product_name_slug);
     return ok({ message: "Product deleted successfully." });
   } catch (err) {
     return handleError(err);

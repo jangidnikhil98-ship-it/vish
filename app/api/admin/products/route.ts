@@ -15,6 +15,7 @@ import {
   saveStorageFile,
   validateProductImage,
 } from "@/lib/admin-uploads";
+import { CACHE_TAGS, bustCache } from "@/lib/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -121,6 +122,15 @@ export async function POST(req: NextRequest) {
       sizes: sizeWrites,
       images,
     });
+
+    // Storefront listings + bestsellers + search are all cached. Without
+    // this the new product (and its main image) won't appear until the
+    // 5-minute TTL expires.
+    bustCache(
+      CACHE_TAGS.products,
+      CACHE_TAGS.productList,
+      CACHE_TAGS.productSearch,
+    );
 
     return ok({ id, message: "Product created successfully." });
   } catch (err) {

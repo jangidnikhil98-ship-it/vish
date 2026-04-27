@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { productImages, productSizes, products } from "@/lib/db/schema";
 import { buildListResult, type ListResult } from "@/lib/admin-pagination";
@@ -20,19 +20,27 @@ export interface AdminProductRow {
   main_image: string | null;
 }
 
-const mainImageSql = sql<string | null>`(
-  SELECT pi.image_url FROM ${productImages} pi
-  WHERE pi.product_id = ${products.id}
-  ORDER BY pi.image_type ASC, pi.id ASC
-  LIMIT 1
-)`;
-
 const defaultSizePriceSql = sql<string | null>`(
   SELECT ps.price FROM ${productSizes} ps
   WHERE ps.product_id = ${products.id}
   ORDER BY ps.is_default DESC, ps.id ASC
   LIMIT 1
 )`;
+
+/**
+ * Pick the preview image url for a product from a flat list of its image
+ * rows. Prefers `image_type = 1` (Main), falls back to the most recently
+ * uploaded image of any type so the UI never shows a blank cell when the
+ * product clearly has pictures. Returns null only when the product has
+ * zero rows in `product_images`.
+ */
+function pickMainImage(
+  rows: ReadonlyArray<{ image_url: string | null; image_type: number; id: number }>,
+): string | null {
+  if (rows.length === 0) return null;
+  // rows are pre-sorted (image_type ASC, id DESC) — first element wins.
+  return rows[0]?.image_url ?? null;
+}
 
 export async function listAdminProducts(params: {
   page: number;
@@ -55,7 +63,14 @@ export async function listAdminProducts(params: {
   }
   const whereExpr = whereParts.length ? and(...whereParts) : undefined;
 
-  const rows = await db
+  // Step 1: fetch the product page itself. We deliberately avoid the
+  // previous correlated-subquery approach for the main image — with
+  // legacy/imported rows (where many `product_images` rows default to
+  // `image_type = 1`) the subquery proved unreliable and the same image
+  // could show for every row. A small follow-up `IN (...)` query on the
+  // visible page's IDs is faster, deterministic, and matches what the
+  // Edit screen renders.
+  const baseRows = await db
     .select({
       id: products.id,
       product_name: products.product_name,
@@ -65,7 +80,6 @@ export async function listAdminProducts(params: {
       stock_quantity: products.stock_quantity,
       product_type: products.product_type,
       status: products.status,
-      main_image: mainImageSql,
     })
     .from(products)
     .where(whereExpr)
@@ -77,6 +91,52 @@ export async function listAdminProducts(params: {
     .select({ count: sql<number>`COUNT(*)` })
     .from(products)
     .where(whereExpr);
+
+  // Step 2: batch-fetch all images for just the products on this page.
+  // Sort image_type ASC so Main rows (image_type=1) come first per
+  // product, then id DESC so a recently replaced main wins over an old
+  // duplicate. We then pick the first row per product in JS.
+  const ids = baseRows.map((r) => r.id);
+  const imageRows =
+    ids.length === 0
+      ? []
+      : await db
+          .select({
+            product_id: productImages.product_id,
+            id: productImages.id,
+            image_url: productImages.image_url,
+            image_type: productImages.image_type,
+          })
+          .from(productImages)
+          .where(inArray(productImages.product_id, ids))
+          .orderBy(productImages.image_type, desc(productImages.id));
+
+  const imagesByProduct = new Map<
+    number,
+    Array<{ image_url: string | null; image_type: number; id: number }>
+  >();
+  for (const row of imageRows) {
+    if (row.product_id == null) continue;
+    const list = imagesByProduct.get(row.product_id) ?? [];
+    list.push({
+      image_url: row.image_url,
+      image_type: row.image_type,
+      id: row.id,
+    });
+    imagesByProduct.set(row.product_id, list);
+  }
+
+  const rows: AdminProductRow[] = baseRows.map((r) => ({
+    id: r.id,
+    product_name: r.product_name,
+    sku: r.sku,
+    price: r.price,
+    discount: r.discount,
+    stock_quantity: r.stock_quantity,
+    product_type: r.product_type,
+    status: r.status,
+    main_image: pickMainImage(imagesByProduct.get(r.id) ?? []),
+  }));
 
   return buildListResult(rows, Number(count), page, perPage);
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   productImages,
@@ -62,23 +62,6 @@ const toNumber = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/**
- * Correlated subquery that returns the URL of a product's main image.
- *   image_type = 1 → main image (shown on cards / index page)
- *   image_type = 2 → additional gallery images (only used on detail page)
- *
- * We strictly filter on `image_type = 1` so listing pages never accidentally
- * fall back to a secondary/gallery image when the main one is missing.
- * If a product has no main image, this returns NULL and the UI falls back
- * to /img/no-image.png.
- */
-const mainImageSql = sql<string | null>`(
-  SELECT pi.image_url FROM ${productImages} pi
-  WHERE pi.product_id = ${products.id} AND pi.image_type = 1
-  ORDER BY pi.id DESC
-  LIMIT 1
-)`;
-
 const defaultSizePriceSql = sql<string>`(
   SELECT ps.price FROM ${productSizes} ps
   WHERE ps.product_id = ${products.id}
@@ -92,6 +75,44 @@ const defaultSizeFinalPriceSql = sql<string>`(
   ORDER BY ps.is_default DESC, ps.id ASC
   LIMIT 1
 )`;
+
+/**
+ * Fetch the preview image url for a set of product ids in a single
+ * batched query, then return a Map keyed by product id.
+ *
+ * Why we don't use a correlated subquery: with legacy / imported rows
+ * (where many `product_images` entries default to `image_type = 1`)
+ * the per-row subquery turned out to be unreliable in practice — the
+ * admin product list ended up rendering the same picture for every
+ * product. Doing the join in JS over the page's product ids is
+ * deterministic, fast (one extra query per listing call), and matches
+ * exactly what the Edit screen displays for each product.
+ *
+ * Sort order:
+ *   image_type ASC → image_type = 1 (Main) wins when present
+ *   id DESC        → freshly replaced rows win over stale duplicates
+ * The first row per product id is the chosen preview.
+ */
+async function fetchPreviewImages(
+  ids: ReadonlyArray<number>,
+): Promise<Map<number, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      product_id: productImages.product_id,
+      image_url: productImages.image_url,
+    })
+    .from(productImages)
+    .where(inArray(productImages.product_id, ids as number[]))
+    .orderBy(productImages.image_type, desc(productImages.id));
+
+  const map = new Map<number, string>();
+  for (const row of rows) {
+    if (row.product_id == null || !row.image_url) continue;
+    if (!map.has(row.product_id)) map.set(row.product_id, row.image_url);
+  }
+  return map;
+}
 
 // NOTE: Every public storefront query must add BOTH:
 //   eq(products.status, "active")
@@ -125,13 +146,11 @@ export const listProducts = cached(
     }
     const whereExpr = and(...whereParts);
 
-    // Single query: products + main image + default size, paged
-    const rows = await db
+    const baseRows = await db
       .select({
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        image: mainImageSql,
         price: defaultSizePriceSql,
         finalPrice: defaultSizeFinalPriceSql,
       })
@@ -148,12 +167,14 @@ export const listProducts = cached(
 
     const total = Number(count);
 
+    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+
     return {
-      data: rows.map((r) => ({
+      data: baseRows.map((r) => ({
         id: r.id,
         slug: r.slug,
         name: r.name,
-        image: r.image,
+        image: previews.get(r.id) ?? null,
         price: toNumber(r.price),
         finalPrice: toNumber(r.finalPrice),
       })),
@@ -289,12 +310,11 @@ export const getProductBySlug = cached(
    ============================================================ */
 export const getRelatedProducts = cached(
   async (excludeId: number, limit: number = 4): Promise<ProductCard[]> => {
-    const rows = await db
+    const baseRows = await db
       .select({
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        image: mainImageSql,
         price: defaultSizePriceSql,
         finalPrice: defaultSizeFinalPriceSql,
       })
@@ -309,11 +329,13 @@ export const getRelatedProducts = cached(
       .orderBy(sql`RAND()`)
       .limit(Number(limit));
 
-    return rows.map((r) => ({
+    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+
+    return baseRows.map((r) => ({
       id: r.id,
       slug: r.slug,
       name: r.name,
-      image: r.image,
+      image: previews.get(r.id) ?? null,
       price: toNumber(r.price),
       finalPrice: toNumber(r.finalPrice),
     }));
@@ -331,12 +353,11 @@ export const getRelatedProducts = cached(
 export const searchProducts = cached(
   async (q: string, limit: number = 20): Promise<ProductCard[]> => {
     const term = `%${q}%`;
-    const rows = await db
+    const baseRows = await db
       .select({
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        image: mainImageSql,
         price: defaultSizePriceSql,
         finalPrice: defaultSizeFinalPriceSql,
       })
@@ -354,11 +375,13 @@ export const searchProducts = cached(
       .orderBy(desc(products.id))
       .limit(Number(limit));
 
-    return rows.map((r) => ({
+    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+
+    return baseRows.map((r) => ({
       id: r.id,
       slug: r.slug,
       name: r.name,
-      image: r.image,
+      image: previews.get(r.id) ?? null,
       price: toNumber(r.price),
       finalPrice: toNumber(r.finalPrice),
     }));
@@ -375,12 +398,11 @@ export const searchProducts = cached(
    ============================================================ */
 export const getBestsellers = cached(
   async (limit: number = 8): Promise<ProductCard[]> => {
-    const rows = await db
+    const baseRows = await db
       .select({
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        image: mainImageSql,
         price: defaultSizePriceSql,
         finalPrice: defaultSizeFinalPriceSql,
       })
@@ -389,11 +411,13 @@ export const getBestsellers = cached(
       .orderBy(desc(products.id))
       .limit(Number(limit));
 
-    return rows.map((r) => ({
+    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+
+    return baseRows.map((r) => ({
       id: r.id,
       slug: r.slug,
       name: r.name,
-      image: r.image,
+      image: previews.get(r.id) ?? null,
       price: toNumber(r.price),
       finalPrice: toNumber(r.finalPrice),
     }));

@@ -8,6 +8,7 @@ import {
   getAdminProductById,
   setAdminProductActive,
 } from "@/lib/queries/admin/products";
+import { CACHE_TAGS, bustCache } from "@/lib/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,18 @@ export async function POST(req: NextRequest, ctx: Ctx) {
 
     const { active } = statusSchema.parse(await req.json());
     await setAdminProductActive(id, active);
+
+    // Storefront listings filter by status="active". Without busting the
+    // cache, toggling status off (or back on) would not show up on the
+    // public site for up to 5 minutes.
+    bustCache(
+      CACHE_TAGS.products,
+      CACHE_TAGS.productList,
+      CACHE_TAGS.productSearch,
+    );
+    if (product.product_name_slug) {
+      bustCache(CACHE_TAGS.product(product.product_name_slug));
+    }
 
     return ok({ message: "Status updated successfully", active });
   } catch (err) {
