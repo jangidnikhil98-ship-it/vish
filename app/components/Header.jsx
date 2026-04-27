@@ -59,14 +59,19 @@ export default function Header() {
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const searchInputRef = useRef(null);
 
-  // Focus the search input when the overlay opens
+  // Focus the search input when the overlay opens, and lock body scroll
   useEffect(() => {
     if (searchOpen) {
       setQuery("");
       setResults([]);
       setSelectedIdx(-1);
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
       const t = setTimeout(() => searchInputRef.current?.focus(), 50);
-      return () => clearTimeout(t);
+      return () => {
+        clearTimeout(t);
+        document.body.style.overflow = prevOverflow;
+      };
     }
   }, [searchOpen]);
 
@@ -564,81 +569,108 @@ export default function Header() {
         </div>
       </section>
 
-      {/* FULLSCREEN SEARCH OVERLAY */}
+      {/* SEARCH MODAL OVERLAY */}
       <div
         id="search-container"
-        className={`fullscreen-search${searchOpen ? " visible" : ""}`}
+        className={`search-overlay${searchOpen ? " visible" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-hidden={!searchOpen}
       >
-        <div className="search-top">
-          <input
-            ref={searchInputRef}
-            type="text"
-            id="search-input"
-            placeholder="Search products..."
-            autoComplete="off"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onInputKeyDown}
-          />
-          <button
-            type="button"
-            className="search-close"
-            onClick={() => setSearchOpen(false)}
-            aria-label="Close search"
-          >
-            &times;
-          </button>
-        </div>
-
-        {searching && (
-          <div className="search-loading" style={{ display: "block" }}>
-            <div className="loader"></div>
-          </div>
-        )}
+        <div
+          className="search-backdrop"
+          onClick={() => setSearchOpen(false)}
+          aria-hidden="true"
+        ></div>
 
         <div
-          id="search-results"
-          className="row text-center justify-content-center g-4"
+          className="search-panel"
+          role="document"
+          onClick={(e) => e.stopPropagation()}
         >
-          {!searching && query.trim().length >= 2 && results.length === 0 && (
-            <div className="no-results">No products found</div>
-          )}
-
-          {results.map((item, i) => (
-            <div
-              key={item.url}
-              className={`col-6 col-sm-4 col-md-3 col-lg-3${
-                selectedIdx === i ? " selected" : ""
-              }`}
-              data-aos="fade-up"
-              data-aos-duration="500"
+          <div className="search-top">
+            <i
+              className="fa-solid fa-magnifying-glass search-input-icon"
+              aria-hidden="true"
+            ></i>
+            <input
+              ref={searchInputRef}
+              type="text"
+              id="search-input"
+              placeholder="Search products..."
+              autoComplete="off"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={onInputKeyDown}
+            />
+            <button
+              type="button"
+              className="search-close"
+              onClick={() => setSearchOpen(false)}
+              aria-label="Close search"
             >
-              <div className="category-item-annivesary">
-                <Link
-                  href={item.url}
-                  onClick={() => setSearchOpen(false)}
-                >
-                  <div className="birthday-item">
-                    <img src={item.image} alt={item.title} />
-                  </div>
-                </Link>
-                <div className="artificial-engvraed">
-                  <Link
-                    href={item.url}
-                    onClick={() => setSearchOpen(false)}
-                  >
-                    <p>{highlight(item.title)}</p>
-                    <div className="product-price">
-                      <h2>₹{item.price}</h2>
-                      {item.price_withoutdiscount ? (
-                        <h6>₹{item.price_withoutdiscount}</h6>
-                      ) : null}
-                    </div>
-                  </Link>
-                </div>
+              &times;
+            </button>
+          </div>
+
+          <div className="search-body">
+            {searching && (
+              <div className="search-loading">
+                <div className="loader"></div>
               </div>
-            </div>
-          ))}
+            )}
+
+            {!searching && query.trim().length < 2 && (
+              <div className="search-hint">
+                Type at least 2 characters to search products…
+              </div>
+            )}
+
+            {!searching && query.trim().length >= 2 && results.length === 0 && (
+              <div className="no-results">No products found</div>
+            )}
+
+            {!searching && results.length > 0 && (
+              <div
+                id="search-results"
+                className="row row-cols-2 row-cols-sm-3 row-cols-md-4 text-center g-3"
+              >
+                {results.map((item, i) => (
+                  <div
+                    key={item.url}
+                    className={`col${
+                      selectedIdx === i ? " selected" : ""
+                    }`}
+                  >
+                    <div className="category-item-annivesary search-result-card">
+                      <Link
+                        href={item.url}
+                        onClick={() => setSearchOpen(false)}
+                      >
+                        <div className="birthday-item">
+                          <img src={item.image} alt={item.title} loading="lazy" />
+                        </div>
+                      </Link>
+                      <div className="artificial-engvraed">
+                        <Link
+                          href={item.url}
+                          onClick={() => setSearchOpen(false)}
+                        >
+                          <p>{highlight(item.title)}</p>
+                          <div className="product-price">
+                            <h2>₹{item.price}</h2>
+                            {item.price_withoutdiscount ? (
+                              <h6>₹{item.price_withoutdiscount}</h6>
+                            ) : null}
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

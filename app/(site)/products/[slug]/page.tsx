@@ -216,15 +216,10 @@ export default async function ProductDetailsPage({ params }: PageProps) {
       {/* RELATED PRODUCTS */}
       {related.length > 0 && (
         <section className="product-section container">
-          <div className="row text-center justify-content-center g-4">
-            <h3 className="mb-4 similerpro">You may also like</h3>
+          <h3 className="mb-4 similerpro text-center">You may also like</h3>
+          <div className="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-4 text-center justify-content-center g-4">
             {related.map((p) => (
-              <div
-                key={p.id}
-                className="col-6 col-sm-4 col-md-3 col-lg-3"
-                data-aos="fade-up"
-                data-aos-duration="500"
-              >
+              <div key={p.id} className="col">
                 <div className="category-item-annivesary">
                   <Link href={`/products/${p.slug ?? ""}`}>
                     <div className="birthday-item">
@@ -241,7 +236,9 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                       <p>{p.name ?? "Product"}</p>
                       <div className="product-price">
                         <h2>₹{formatINR(p.finalPrice)}</h2>
-                        <h6>₹{formatINR(p.price)}</h6>
+                        {p.price && p.price > p.finalPrice ? (
+                          <h6>₹{formatINR(p.price)}</h6>
+                        ) : null}
                       </div>
                     </Link>
                   </div>
