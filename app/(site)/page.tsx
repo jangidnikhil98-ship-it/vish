@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import HomePage from "@/app/components/HomePage";
 import { getBestsellers, type ProductCard } from "@/lib/queries/products";
 
-export const dynamic = "force-dynamic";
+// ISR: page is cached at the edge and re-rendered every 60s. The actual
+// DB queries are already wrapped in `unstable_cache`, so this just unlocks
+// edge caching of the rendered HTML for every visitor.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Vishwakarma Gifts — Personalized Wooden Engraved Gifts in India",
@@ -49,5 +52,17 @@ export default async function Home() {
     console.error("[home] failed to load bestsellers:", err);
   }
 
-  return <HomePage bestsellers={bestsellers} />;
+  return (
+    <>
+      {/* Preload the LCP banner image so the browser starts the fetch
+          immediately on home, before HTML parsing reaches the carousel. */}
+      <link
+        rel="preload"
+        as="image"
+        href="/img/banner.webp"
+        fetchPriority="high"
+      />
+      <HomePage bestsellers={bestsellers} />
+    </>
+  );
 }

@@ -44,6 +44,13 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       is_active: form.get("is_active") ?? "1",
     });
 
+    // Resolve slug FIRST so we can use it as the SEO-friendly filename
+    // prefix when re-uploading the cover image.
+    const slug =
+      parsed.title === blog.title
+        ? blog.slug ?? (await ensureUniqueBlogSlug(parsed.title))
+        : await ensureUniqueBlogSlug(parsed.title);
+
     let imagePath: string | undefined;
     const file = form.get("image");
     if (file instanceof Blob && file.size > 0) {
@@ -53,18 +60,13 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
           errors: { image: [v.message ?? "Invalid image"] },
         });
       }
-      const saved = await saveStorageFile(file, "blogs");
+      const saved = await saveStorageFile(file, "blogs", slug);
       imagePath = `storage/${saved.relativePath}`;
       // Drop the previous file from disk if it still lives under /public/storage.
       if (blog.image && blog.image.startsWith("storage/")) {
         await deleteStorageFile(blog.image.replace(/^storage\//, ""));
       }
     }
-
-    const slug =
-      parsed.title === blog.title
-        ? blog.slug ?? (await ensureUniqueBlogSlug(parsed.title))
-        : await ensureUniqueBlogSlug(parsed.title);
 
     await updateAdminBlog(id, {
       title: parsed.title,

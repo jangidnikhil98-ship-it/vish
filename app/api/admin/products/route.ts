@@ -95,9 +95,18 @@ export async function POST(req: NextRequest) {
     if (sizeWrites.every((s) => s.is_default === 0)) sizeWrites[0].is_default = 1;
 
     // Persist files first so DB references are correct.
-    const savedMain = await saveStorageFile(mainFile, "productMediaLibrary");
+    // Pass the product slug as the filename prefix → uploads land at
+    // /storage/productMediaLibrary/customizable-wooden-frame-<uuid>.webp
+    // which Google Image Search reads for ranking signals.
+    const savedMain = await saveStorageFile(
+      mainFile,
+      "productMediaLibrary",
+      `${slug}-main`,
+    );
     const savedAdditional = await Promise.all(
-      additionalFiles.map((f) => saveStorageFile(f, "productMediaLibrary")),
+      additionalFiles.map((f, i) =>
+        saveStorageFile(f, "productMediaLibrary", `${slug}-${i + 1}`),
+      ),
     );
     const images: ImageWriteInput[] = [
       { image_url: savedMain.relativePath, image_type: 1 },

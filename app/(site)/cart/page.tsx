@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { products, sampleCartItems } from "@/lib/products";
+
+export const metadata: Metadata = {
+  title: "Your Cart",
+  description: "Review the items in your shopping cart at Vishwakarma Gifts.",
+  robots: { index: false, follow: false },
+};
 
 export default function CartPage() {
   const items = sampleCartItems

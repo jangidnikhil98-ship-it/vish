@@ -3273,8 +3273,10 @@ section.success-section {
     justify-content: start !important;
   }
   section.category-section .row .col-12.col-sm-4.col-md-3.col-lg-3 {
-    width: 90%;
-    padding: 0 10px;
+    /* 2 cards visible at a time on tablets/mobile, with a small peek */
+    width: 48%;
+    flex: 0 0 48%;
+    padding: 0 6px;
   }
   .main-header .search-user a.plus_icon {
     display: block;
@@ -3354,7 +3356,7 @@ section.success-section {
   .inner-banner h1::after,
   .inner-banner h2::after { width: 48px; height: 2px; margin-top: 10px; }
   .inner-banner p { font-size: 14px; }
-  /* File 2 unique: category slider mobile */
+  /* File 2 unique: category slider mobile — 2 cards visible at a time */
   .category-slider {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -3365,9 +3367,17 @@ section.success-section {
   }
   .category-slider::-webkit-scrollbar { display: none; }
   .category-slider > [class*="col-"] {
-    flex: 0 0 80%;
-    max-width: 80%;
+    flex: 0 0 48%;
+    max-width: 48%;
     scroll-snap-align: start;
+  }
+  /* Shorter portrait card on mobile so it doesn't dominate the viewport */
+  section.category-section.our-category-portrait .category-item {
+    aspect-ratio: 4 / 5;
+  }
+  section.category-section.our-category-portrait .category-item p {
+    font-size: 13px;
+    padding: 8px 6px;
   }
 }
 

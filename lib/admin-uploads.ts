@@ -30,22 +30,49 @@ export interface SavedFile {
 }
 
 /**
- * Save a single file under `/public/storage/<subdir>/<uuid>.<ext>`.
+ * Slugify a string for use in a filename: lowercase, alphanumerics + dashes
+ * only, max 60 chars. e.g. "Customizable Wooden Frame!" → "customizable-wooden-frame".
+ *
+ * Exported so callers (admin product/blog routes) can pre-compute the prefix
+ * once for a batch of uploads, instead of re-slugifying per file.
+ */
+export function slugifyForFilename(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+/**
+ * Save a single file under `/public/storage/<subdir>/<filename>.<ext>`.
+ *
  * Caller is responsible for validating the file beforehand (mime/size).
  *
- * Why a uuid? We never trust user-provided filenames — they leak host info
- * and can collide. uuid + extension is enough for cache-busting.
+ * Filename pattern:
+ *   - With `prefix`: `<slugified-prefix>-<short-uuid>.<ext>`
+ *     (good for SEO — Google Image Search reads filenames; e.g.
+ *     `personalized-wooden-photo-frame-a1b2c3.webp`)
+ *   - Without `prefix`: `<timestamp>_<short-uuid>.<ext>`
+ *     (fallback for callers that have no useful name yet, e.g. ad-hoc uploads)
+ *
+ * The short uuid keeps filenames unique across uploads of the same product.
  */
 export async function saveStorageFile(
   file: Blob,
   subdir: string,
+  prefix?: string,
 ): Promise<SavedFile> {
   const safeSubdir = subdir.replace(/[^a-zA-Z0-9_\-/]/g, "");
   const targetDir = path.join(STORAGE_ROOT, safeSubdir);
   await mkdir(targetDir, { recursive: true });
 
   const ext = pickExtension(file.type);
-  const filename = `${Date.now()}_${randomUUID().slice(0, 8)}.${ext}`;
+  const slug = prefix ? slugifyForFilename(prefix) : "";
+  const unique = randomUUID().slice(0, 8);
+  const filename = slug
+    ? `${slug}-${unique}.${ext}`
+    : `${Date.now()}_${unique}.${ext}`;
   const absolutePath = path.join(targetDir, filename);
   const relativePath = `${safeSubdir}/${filename}`.replace(/\\/g, "/");
 

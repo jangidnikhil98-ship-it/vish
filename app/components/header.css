@@ -267,3 +267,285 @@
   background: #f6eee7;
   color: #613a18;
 }
+
+/* ================= MOBILE NAV DRAWER ================= */
+/* Hide all mobile-drawer-only pieces on desktop. Use !important because
+   FontAwesome / Bootstrap stylesheets are loaded *after* this file in the
+   cascade and would otherwise win on display rules. */
+.mobile-nav-header,
+.mobile-nav-footer,
+.mobile-nav-icon,
+.mobile-nav-backdrop {
+  display: none !important;
+}
+
+@media (max-width: 991px) {
+  /* Backdrop dim layer behind the slide-in drawer */
+  .mobile-nav-backdrop {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 98;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .mobile-nav-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Drawer header with logo + close button — white background so the
+     original brand logo shows clearly (no color inversion needed). */
+  .mobile-nav-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid #ece4d9;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .mobile-nav-logo {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .mobile-nav-logo img {
+    max-height: 40px;
+    height: auto;
+    max-width: 100%;
+    width: auto;
+    display: block;
+    object-fit: contain;
+  }
+
+  .mobile-nav-close {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f6eee7;
+    color: #6b4423;
+    border: 1px solid #e7d9c6;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+  }
+
+  .mobile-nav-close:hover,
+  .mobile-nav-close:active {
+    background: #6b4423;
+    color: #fff;
+    transform: scale(1.05);
+  }
+
+  /* Tweak the existing nav list / items so they look modern in the drawer */
+  .main-header nav#nav ul.nav-list li.nav-item {
+    padding: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  .main-header nav#nav ul.nav-list li.nav-item:first-child {
+    border-top: 0 !important;
+  }
+
+  .main-header nav#nav ul.nav-list li.nav-item > a,
+  .main-header nav#nav ul.nav-list li.nav-item > span {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px !important;
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff !important;
+    opacity: 0.95 !important;
+    transition: background 0.15s, padding-left 0.15s;
+  }
+
+  .main-header nav#nav ul.nav-list li.nav-item > a:hover,
+  .main-header nav#nav ul.nav-list li.nav-item > a:active {
+    background: rgba(255, 255, 255, 0.08);
+    padding-left: 24px !important;
+  }
+
+  .mobile-nav-icon {
+    display: inline-flex !important;
+    width: 22px;
+    text-align: center;
+    font-size: 16px;
+    color: #f1d9bd;
+    flex-shrink: 0;
+  }
+
+  /* Shop submenu inside the drawer — collapsed by default,
+     expanded when the parent <li> has the .mobile-shop-open class.
+     We also have to neutralize Bootstrap's defaults (position: absolute,
+     display: none, width: ...) since its stylesheet loads after this one. */
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown ul.dropdown-menu {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    inset: auto !important;
+    transform: none !important;
+    background: rgba(0, 0, 0, 0.18) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    float: none !important;
+    /* collapsed-by-default animation */
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 0 0 50px !important;
+    transition: max-height 0.28s ease, padding 0.28s ease;
+  }
+
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown.mobile-shop-open ul.dropdown-menu {
+    max-height: 600px;
+    padding: 6px 0 10px 50px !important;
+  }
+
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown ul.dropdown-menu li {
+    padding: 0 !important;
+    list-style: none !important;
+    border: 0 !important;
+  }
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown ul.dropdown-menu li a {
+    display: block !important;
+    padding: 10px 16px 10px 0 !important;
+    font-size: 14px !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    text-decoration: none !important;
+    width: auto !important;
+  }
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown ul.dropdown-menu li a:hover {
+    color: #fff !important;
+    background: transparent !important;
+  }
+
+  /* The Shop tap-toggle label */
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown > span.mobile-shop-toggle {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown > span .arrow {
+    margin-left: auto;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    opacity: 1;
+    transition: transform 0.25s ease;
+    display: inline-flex !important;
+    align-items: center;
+    width: auto;
+  }
+
+  .main-header nav#nav ul.nav-list li.nav-item.dropdown.mobile-shop-open > span .arrow {
+    transform: rotate(180deg);
+    color: #f1d9bd;
+  }
+
+  /* Footer with Login / Sign Up (or My Account / Logout) */
+  .mobile-nav-footer {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px 24px;
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .mobile-nav-greeting {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .mobile-nav-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #fff;
+    background: #fff;
+    color: #6b4423 !important;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .mobile-nav-btn.outline {
+    background: transparent;
+    color: #fff !important;
+  }
+
+  .mobile-nav-btn:hover,
+  .mobile-nav-btn:active {
+    background: #f1d9bd;
+    color: #6b4423 !important;
+  }
+
+  .mobile-nav-btn.outline:hover,
+  .mobile-nav-btn.outline:active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff !important;
+  }
+
+  /* Make the nav drawer a flex column so the auth footer pins to the bottom */
+  .main-header nav#nav {
+    display: flex !important;
+    flex-direction: column;
+    padding: 0 !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  }
+  .main-header nav#nav ul.nav-list {
+    flex: 0 0 auto;
+    padding-left: 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+  }
+}
+
+/* On mobile the .search-user bar is position:fixed; bottom:0
+   (see globals.css @media max-width:991px), so the dropdown must open
+   UPWARD or it falls below the viewport and looks like the icon does
+   nothing. */
+@media (max-width: 991px) {
+  .account-menu {
+    position: static;
+  }
+  .account-dropdown {
+    position: fixed;
+    right: 12px;
+    left: auto;
+    bottom: 80px;
+    top: auto;
+    min-width: 200px;
+    z-index: 10000;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+  }
+  .account-dropdown a,
+  .account-dropdown button {
+    color: #4b2d12;
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+}

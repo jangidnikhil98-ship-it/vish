@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const saved = await saveStorageFile(file, "blogs");
+    // Compute slug FIRST so the saved blog image filename mirrors it.
     const slug = await ensureUniqueBlogSlug(parsed.title);
+    const saved = await saveStorageFile(file, "blogs", slug);
 
     const id = await createAdminBlog({
       title: parsed.title,

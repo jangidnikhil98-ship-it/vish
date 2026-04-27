@@ -27,6 +27,23 @@ export default function Header() {
 
   // --- mobile menu ---
   const [navOpen, setNavOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+  useEffect(() => {
+    if (!navOpen) {
+      setShopOpen(false);
+      return;
+    }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [navOpen]);
 
   // --- account dropdown ---
   const [acctOpen, setAcctOpen] = useState(false);
@@ -295,20 +312,62 @@ export default function Header() {
           &#9776;
         </div>
 
+        {/* Mobile drawer backdrop */}
+        <div
+          className={`mobile-nav-backdrop${navOpen ? " visible" : ""}`}
+          onClick={() => setNavOpen(false)}
+          aria-hidden="true"
+        ></div>
+
         <nav
           className={`main-nav${navOpen ? " show" : ""}`}
           id="nav"
         >
+          {/* Mobile-only drawer header (logo + close) */}
+          <div className="mobile-nav-header">
+            <Link
+              href="/"
+              className="mobile-nav-logo"
+              onClick={() => setNavOpen(false)}
+              aria-label="Home"
+            >
+              <img src="/img/logo.svg" alt="Vishwakarma Gifts" />
+            </Link>
+            <button
+              type="button"
+              className="mobile-nav-close"
+              aria-label="Close menu"
+              onClick={() => setNavOpen(false)}
+            >
+              &times;
+            </button>
+          </div>
+
           <ul className="nav-list">
             <li className="nav-item">
               <Link href="/" onClick={() => setNavOpen(false)}>
+                <i className="fa-solid fa-house mobile-nav-icon" aria-hidden="true"></i>
                 Home
               </Link>
             </li>
 
-            <li className="nav-item dropdown">
-              <span>
-                Shop<span className="arrow">&#9662;</span>
+            <li className={`nav-item dropdown${shopOpen ? " mobile-shop-open" : ""}`}>
+              <span
+                className="mobile-shop-toggle"
+                role="button"
+                tabIndex={0}
+                onClick={() => setShopOpen((v) => !v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShopOpen((v) => !v);
+                  }
+                }}
+                aria-expanded={shopOpen}
+              >
+                <i className="fa-solid fa-bag-shopping mobile-nav-icon" aria-hidden="true"></i>
+                Shop
+                <i className="fa-solid fa-chevron-down arrow" aria-hidden="true"></i>
               </span>
               <ul className="dropdown-menu">
                 {SHOP_LINKS.map((s) => (
@@ -326,6 +385,7 @@ export default function Header() {
 
             <li className="nav-item">
               <Link href="/blogs" onClick={() => setNavOpen(false)}>
+                <i className="fa-solid fa-newspaper mobile-nav-icon" aria-hidden="true"></i>
                 News &amp; Blogs
               </Link>
             </li>
@@ -334,15 +394,64 @@ export default function Header() {
                 href="/products?type=wedding-anniversary"
                 onClick={() => setNavOpen(false)}
               >
+                <i className="fa-solid fa-heart mobile-nav-icon" aria-hidden="true"></i>
                 Wedding &amp; Anniversary
               </Link>
             </li>
             <li className="nav-item">
               <Link href="/contact" onClick={() => setNavOpen(false)}>
+                <i className="fa-solid fa-envelope mobile-nav-icon" aria-hidden="true"></i>
                 Contact us
               </Link>
             </li>
           </ul>
+
+          {/* Mobile-only auth footer */}
+          <div className="mobile-nav-footer">
+            {user ? (
+              <>
+                <div className="mobile-nav-greeting">
+                  Hi, <strong>{user.first_name}</strong>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="mobile-nav-btn outline"
+                  onClick={() => setNavOpen(false)}
+                >
+                  My Account
+                </Link>
+                <button
+                  type="button"
+                  className="mobile-nav-btn"
+                  onClick={async () => {
+                    setNavOpen(false);
+                    await logout();
+                    router.push("/");
+                    router.refresh();
+                  }}
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="mobile-nav-btn"
+                  onClick={() => setNavOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="mobile-nav-btn outline"
+                  onClick={() => setNavOpen(false)}
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
         </nav>
 
         <div className="search-user">

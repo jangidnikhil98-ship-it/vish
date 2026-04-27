@@ -15,7 +15,9 @@ const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 ).replace(/\/$/, "");
 
-export const dynamic = "force-dynamic";
+// ISR: each product page is cached at the edge for 5 minutes. Admin edits
+// already call `bustCache(CACHE_TAGS.products)` to revalidate immediately.
+export const revalidate = 300;
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -51,6 +53,8 @@ export async function generateMetadata({
       .trim() ||
     `Buy ${productName} — handcrafted personalised wooden gift from Vishwakarma Gifts.`;
 
+  const ogImage = product.image ? imageSrc(product.image) : "/img/banner.webp";
+
   return {
     title: productName,
     description,
@@ -59,8 +63,15 @@ export async function generateMetadata({
       title: productName,
       description,
       url: `/products/${productSlug}`,
-      images: product.image ? [imageSrc(product.image)] : undefined,
+      images: [{ url: ogImage, alt: productName }],
       type: "website",
+      siteName: "Vishwakarma Gifts",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: productName,
+      description,
+      images: [ogImage],
     },
     robots: { index: true, follow: true },
   };

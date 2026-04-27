@@ -22,6 +22,11 @@
 /.next/dev/
 /.next/diagnostics/
 /.next/trace
+# Files Next.js rewrites at runtime when ISR / sitemap revalidation fires.
+# Tracking them causes "your local changes would be overwritten by merge"
+# every time we deploy, because the running server has already updated
+# its copy by the time we `git pull`. They're regenerated automatically.
+/.next/server/app/sitemap.xml.body
 /out/
 
 # production

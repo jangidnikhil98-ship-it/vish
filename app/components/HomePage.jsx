@@ -143,8 +143,11 @@ export default function HomePage({ bestsellers = [] }) {
               <img
                 src="/img/banner.webp"
                 className="d-block w-100"
-                alt="Personalized Wooden Gifts"
+                alt="Personalized Wooden Engraved Gifts — Vishwakarma Gifts"
+                width="1920"
+                height="800"
                 fetchPriority="high"
+                decoding="async"
               />
               <div className="carousel-caption ">
                 <span>Choose the Perfect Personalized Wooden Gifts</span>
@@ -169,7 +172,11 @@ export default function HomePage({ bestsellers = [] }) {
               <img
                 src="/img/banner.webp"
                 className="d-block w-100"
-                alt="Personalized Wooden Gifts"
+                alt="Custom Wooden Engraved Gifts"
+                width="1920"
+                height="800"
+                loading="lazy"
+                decoding="async"
               />
               <div className="carousel-caption ">
                 <span>Choose the Perfect Personalized Wooden Gifts</span>
@@ -194,7 +201,11 @@ export default function HomePage({ bestsellers = [] }) {
               <img
                 src="/img/banner.webp"
                 className="d-block w-100"
-                alt="Personalized Wooden Gifts"
+                alt="Personalized Wedding & Anniversary Gifts"
+                width="1920"
+                height="800"
+                loading="lazy"
+                decoding="async"
               />
               <div className="carousel-caption ">
                 <span>Choose the Perfect Personalized Wooden Gifts</span>
@@ -383,7 +394,13 @@ export default function HomePage({ bestsellers = [] }) {
               data-aos-duration="600"
             >
               <div className="there-many">
-                <img src="/img/about.webp" className="img-fluid" alt="many" />
+                <img
+                  src="/img/about.webp"
+                  className="img-fluid"
+                  alt="About Vishwakarma Gifts — handcrafted wooden gifts"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
             <div

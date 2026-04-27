@@ -117,10 +117,16 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     }));
     if (sizeWrites.every((s) => s.is_default === 0)) sizeWrites[0].is_default = 1;
 
+    // Use the (already-stored) product slug as the filename prefix so any
+    // newly-uploaded images get SEO-friendly filenames matching the product.
+    const slugPrefix = product.product_name_slug ?? "product";
+
     let newImages: ImageWriteInput[] | undefined;
     if (additionalFiles.length > 0) {
       const saved = await Promise.all(
-        additionalFiles.map((f) => saveStorageFile(f, "productMediaLibrary")),
+        additionalFiles.map((f, i) =>
+          saveStorageFile(f, "productMediaLibrary", `${slugPrefix}-${i + 1}`),
+        ),
       );
       newImages = saved.map((s) => ({
         image_url: s.relativePath,
@@ -140,7 +146,11 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     });
 
     if (mainFile) {
-      const savedMain = await saveStorageFile(mainFile, "productMediaLibrary");
+      const savedMain = await saveStorageFile(
+        mainFile,
+        "productMediaLibrary",
+        `${slugPrefix}-main`,
+      );
       const { removedImageUrl } = await replaceMainProductImage(
         id,
         savedMain.relativePath,

@@ -24,31 +24,31 @@ self.__SERVER_FILES_MANIFEST={
     "compress": true,
     "images": {
       "deviceSizes": [
+        320,
+        420,
         640,
-        750,
+        768,
         828,
         1080,
         1200,
-        1920,
-        2048,
-        3840
+        1920
       ],
       "imageSizes": [
-        32,
-        48,
         64,
         96,
         128,
         256,
-        384
+        384,
+        512
       ],
       "path": "/_next/image",
       "loader": "default",
       "loaderFile": "",
       "domains": [],
       "disableStaticImages": false,
-      "minimumCacheTTL": 14400,
+      "minimumCacheTTL": 2592000,
       "formats": [
+        "image/avif",
         "image/webp"
       ],
       "maximumRedirects": 3,
@@ -93,7 +93,7 @@ self.__SERVER_FILES_MANIFEST={
     "productionBrowserSourceMaps": false,
     "excludeDefaultMomentLocales": true,
     "reactProductionProfiling": false,
-    "reactStrictMode": null,
+    "reactStrictMode": true,
     "reactMaxHeadersLength": 6000,
     "httpAgentOptions": {
       "keepAlive": true

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import JsonLd from "@/app/components/JsonLd";
 import {
   listProducts,
   type ProductCard,
@@ -7,7 +8,12 @@ import {
 } from "@/lib/queries/products";
 import { PRODUCT_TYPES, type ProductType } from "@/lib/validators/products";
 
-export const dynamic = "force-dynamic";
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+).replace(/\/$/, "");
+
+// ISR: cached HTML for 60 s. Underlying queries also cached separately.
+export const revalidate = 60;
 
 /* ---------- Title + URL helpers ---------- */
 const TITLE_MAP: Record<ProductType | "default", string> = {
@@ -122,8 +128,41 @@ export default async function ProductsPage({ searchParams }: PageProps) {
     : TITLE_MAP.default;
   const headingTitle = usedFallback ? TITLE_MAP.default : requestedTitle;
 
+  // ItemList JSON-LD: lets Google show this category page as a list of
+  // products in search results (great for category-level SEO).
+  const itemListJsonLd =
+    result.data.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          itemListElement: result.data.slice(0, 24).map((p, i) => ({
+            "@type": "ListItem",
+            position: (page - 1) * 16 + i + 1,
+            url: `${SITE_URL}/products/${p.slug ?? ""}`,
+            name: p.name ?? "Product",
+          })),
+        }
+      : null;
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: headingTitle,
+        item: `${SITE_URL}/products${paginationType ? `?type=${paginationType}` : ""}`,
+      },
+    ],
+  };
+
   return (
     <>
+      {itemListJsonLd && <JsonLd data={itemListJsonLd} />}
+      <JsonLd data={breadcrumbJsonLd} />
+
       <section className="inner-banner">
         <div className="container">
           <h1>{headingTitle}</h1>

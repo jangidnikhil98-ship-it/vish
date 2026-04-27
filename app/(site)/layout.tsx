@@ -79,7 +79,14 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: [
+      { url: "/img/favicon.png", type: "image/png", sizes: "any" },
+    ],
+    shortcut: "/img/favicon.png",
+    apple: [{ url: "/img/favicon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function SiteRootLayout({
@@ -132,26 +139,64 @@ export default function SiteRootLayout({
         <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
 
+        {/* Critical (render-blocking) CSS — Bootstrap layout + FontAwesome
+            icons need to be ready before first paint or the header layout
+            shifts and icons flash blank. */}
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         />
         <link
           rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        />
+
+        {/* Non-critical CSS — Owl Carousel & AOS animations are below the
+            fold. We load them with media="print" so the browser fetches
+            them but does NOT block first paint, then a tiny inline script
+            promotes them to media="all". Falls back gracefully if JS is off
+            via <noscript>. */}
+        <link
+          rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css"
+          media="print"
+          data-async-css=""
         />
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css"
+          media="print"
+          data-async-css=""
         />
         <link
           rel="stylesheet"
           href="https://unpkg.com/aos@2.3.1/dist/aos.css"
+          media="print"
+          data-async-css=""
         />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "document.querySelectorAll('link[data-async-css]').forEach(function(l){l.media='all'});",
+          }}
         />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css"
+          />
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css"
+          />
+          <link
+            rel="stylesheet"
+            href="https://unpkg.com/aos@2.3.1/dist/aos.css"
+          />
+        </noscript>
+
+        {/* Mobile browser theme color — applies to address bar */}
+        <meta name="theme-color" content="#6b4423" />
 
         <JsonLd data={organizationJsonLd} />
         <JsonLd data={websiteJsonLd} />
