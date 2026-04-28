@@ -276,6 +276,14 @@
       "namedRegex": "^/api/products/(?<nxtPslug>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/blogs/[slug]",
+      "regex": "^/blogs/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/blogs/(?<nxtPslug>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/dashboard/orders/[orderNumber]",
       "regex": "^/dashboard/orders/([^/]+?)(?:/)?$",
       "routeKeys": {

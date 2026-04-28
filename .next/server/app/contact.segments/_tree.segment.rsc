@@ -5,4 +5,4 @@
 :HL["https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css","style",{"media":"print"}]
 :HL["https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css","style",{"media":"print"}]
 :HL["https://unpkg.com/aos@2.3.1/dist/aos.css","style",{"media":"print"}]
-0:{"tree":{"name":"","param":null,"prefetchHints":8,"slots":{"children":{"name":"(site)","param":null,"prefetchHints":20,"slots":{"children":{"name":"contact","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}}}},"staleTime":300,"buildId":"Jba73n26HhZkmFeKahUno"}
+0:{"tree":{"name":"","param":null,"prefetchHints":8,"slots":{"children":{"name":"(site)","param":null,"prefetchHints":20,"slots":{"children":{"name":"contact","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}}}},"staleTime":300,"buildId":"BGTKA0fj2IVW4vodG84Us"}
