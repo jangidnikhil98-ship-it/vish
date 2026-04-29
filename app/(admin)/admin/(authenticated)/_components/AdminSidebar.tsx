@@ -50,8 +50,8 @@ export default function AdminSidebar() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               className="img-fluid"
-              src="/backend/images/logo/favicon.png"
-              alt=""
+              src="/img/favicon.png"
+              alt="Vishwakarma Gifts"
             />
           </Link>
         </div>
@@ -68,8 +68,8 @@ export default function AdminSidebar() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     className="img-fluid"
-                    src="/backend/images/logo/favicon.png"
-                    alt=""
+                    src="/img/favicon.png"
+                    alt="Vishwakarma Gifts"
                   />
                 </Link>
                 <div className="mobile-back text-end">

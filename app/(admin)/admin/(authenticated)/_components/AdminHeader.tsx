@@ -21,14 +21,16 @@ export default function AdminHeader({ user }: { user: PublicUser }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className="img-fluid for-light"
-                src="/backend/images/logo/logo.svg"
-                alt=""
+                src="/img/frontend/logo.png"
+                alt="Vishwakarma Gifts"
+                style={{ maxHeight: 44 }}
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className="img-fluid for-dark"
-                src="/backend/images/logo/logo.svg"
-                alt=""
+                src="/img/frontend/logo.png"
+                alt="Vishwakarma Gifts"
+                style={{ maxHeight: 44 }}
               />
             </Link>
           </div>

@@ -81,52 +81,55 @@ export default function AdminRootLayout({
       <body>
         {children}
 
-        {/* Theme JS — order matches the original Blade layout exactly. */}
+        {/* jQuery first — beforeInteractive so it's available to ANY inline
+            handler the rest of the theme drops onto the page. */}
         <Script
           src="/backend/js/jquery.min.js"
           strategy="beforeInteractive"
         />
+
+        {/* Pixelstrap "Zono" was written for classic, ordered <script>
+            tags. Next.js's <Script strategy="afterInteractive"> loads
+            scripts in PARALLEL, so feather-icon.js was beating feather.min.js
+            to execution → "feather is not defined" / "SimpleBar is not
+            defined" / null `pinTitle` / undefined offset(). The fix below
+            is a tiny serial loader: each script only starts loading after
+            the previous one has finished executing. */}
         <Script
-          src="/backend/js/bootstrap/bootstrap.bundle.min.js"
+          id="vish-admin-theme-loader"
           strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/icons/feather-icon/feather.min.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/icons/feather-icon/feather-icon.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/scrollbar/simplebar.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/scrollbar/custom.js"
-          strategy="afterInteractive"
-        />
-        <Script src="/backend/js/config.js" strategy="afterInteractive" />
-        <Script src="/backend/js/script.js" strategy="afterInteractive" />
-        <Script
-          src="/backend/js/sidebar-menu.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/sidebar-pin.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/select2/select2.full.min.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/select2/select2-custom.js"
-          strategy="afterInteractive"
-        />
-        <Script
-          src="/backend/js/tooltip-init.js"
-          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  var sources = [
+    "/backend/js/bootstrap/bootstrap.bundle.min.js",
+    "/backend/js/icons/feather-icon/feather.min.js",
+    "/backend/js/icons/feather-icon/feather-icon.js",
+    "/backend/js/scrollbar/simplebar.js",
+    "/backend/js/scrollbar/custom.js",
+    "/backend/js/config.js",
+    "/backend/js/script.js",
+    "/backend/js/sidebar-menu.js",
+    // sidebar-pin.js intentionally skipped — it requires a .pin-title
+    // element + .fa-thumb-tack icons in the sidebar (a "pin menu items"
+    // feature from the original Laravel template). Our React port has
+    // neither, so the script crashes on togglePinnedName() with a null
+    // dereference and provides no other functionality.
+    "/backend/js/select2/select2.full.min.js",
+    "/backend/js/select2/select2-custom.js",
+    "/backend/js/tooltip-init.js"
+  ];
+  function loadNext(i){
+    if(i>=sources.length) return;
+    var s=document.createElement("script");
+    s.src=sources[i];
+    s.async=false;
+    s.onload=function(){loadNext(i+1);};
+    s.onerror=function(){console.error("[admin-theme] failed to load",sources[i]);loadNext(i+1);};
+    document.body.appendChild(s);
+  }
+  loadNext(0);
+})();`,
+          }}
         />
       </body>
     </html>

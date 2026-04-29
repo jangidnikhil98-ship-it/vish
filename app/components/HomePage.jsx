@@ -60,15 +60,118 @@ export default function HomePage({ bestsellers = [] }) {
   useEffect(() => {
     let aosTries = 0;
     let owlTries = 0;
+    let bsTries = 0;
 
     const initAOS = () => {
       if (typeof window === "undefined") return;
       if (window.AOS) {
-        window.AOS.init({ once: true, disable: "mobile" });
+        const reduce = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+        window.AOS.init({
+          once: true,
+          duration: 700,
+          easing: "ease-out-cubic",
+          offset: 60,
+          disable: reduce,
+        });
       } else if (aosTries++ < 40) {
         setTimeout(initAOS, 150);
       }
     };
+
+    // Hero carousel: Bootstrap's auto-init via `data-bs-ride="carousel"`
+    // hooks into `window.load`, but with the bundle loaded async (Next.js
+    // `afterInteractive`) that listener is often missed. Even when we call
+    // `cycle()` manually, autoplay can still be skipped on mobile Safari
+    // due to `prefers-reduced-motion`. To make autoplay + swipe rock-solid,
+    // we drive everything ourselves with a setInterval + a tiny touch
+    // handler — Bootstrap's CSS animation for `.carousel-item` keeps the
+    // visual transition.
+    let heroIntervalId = null;
+    const heroEl = document.getElementById("carouselExampleCaptions");
+
+    const goNextSlide = () => {
+      if (!heroEl) return;
+      const bs = window.bootstrap;
+      if (bs && bs.Carousel) {
+        const inst = bs.Carousel.getOrCreateInstance(heroEl, {
+          interval: false,
+          touch: false,
+          ride: false,
+          wrap: true,
+        });
+        inst.next();
+      } else {
+        const nextBtn = heroEl.querySelector(".carousel-control-next");
+        if (nextBtn) nextBtn.click();
+      }
+    };
+
+    const goPrevSlide = () => {
+      if (!heroEl) return;
+      const bs = window.bootstrap;
+      if (bs && bs.Carousel) {
+        const inst = bs.Carousel.getOrCreateInstance(heroEl, {
+          interval: false,
+          touch: false,
+          ride: false,
+          wrap: true,
+        });
+        inst.prev();
+      } else {
+        const prevBtn = heroEl.querySelector(".carousel-control-prev");
+        if (prevBtn) prevBtn.click();
+      }
+    };
+
+    const startHeroAutoplay = () => {
+      if (!heroEl || heroIntervalId) return;
+      heroIntervalId = setInterval(goNextSlide, 3000);
+    };
+
+    const initHeroCarousel = () => {
+      if (typeof window === "undefined" || !heroEl) return;
+      const bs = window.bootstrap;
+      if (bs && bs.Carousel) {
+        // Prime the instance so dots/prev/next from data-bs attrs share state.
+        bs.Carousel.getOrCreateInstance(heroEl, {
+          interval: false,
+          touch: false,
+          ride: false,
+          wrap: true,
+        });
+        startHeroAutoplay();
+      } else if (bsTries++ < 60) {
+        setTimeout(initHeroCarousel, 150);
+      } else {
+        // Bootstrap never showed up — autoplay still works via button click.
+        startHeroAutoplay();
+      }
+    };
+
+    // Touch swipe handler — independent of Bootstrap so it's always available.
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const onTouchStart = (e) => {
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+    };
+    const onTouchEnd = (e) => {
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+      // Treat as a horizontal swipe only when X movement clearly dominates.
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        if (dx < 0) goNextSlide();
+        else goPrevSlide();
+      }
+    };
+    if (heroEl) {
+      heroEl.addEventListener("touchstart", onTouchStart, { passive: true });
+      heroEl.addEventListener("touchend", onTouchEnd, { passive: true });
+    }
 
     const initOwl = () => {
       if (typeof window === "undefined") return;
@@ -103,7 +206,16 @@ export default function HomePage({ bestsellers = [] }) {
     };
 
     initAOS();
+    initHeroCarousel();
     initOwl();
+
+    return () => {
+      if (heroIntervalId) clearInterval(heroIntervalId);
+      if (heroEl) {
+        heroEl.removeEventListener("touchstart", onTouchStart);
+        heroEl.removeEventListener("touchend", onTouchEnd);
+      }
+    };
   }, []);
 
   return (
@@ -113,8 +225,6 @@ export default function HomePage({ bestsellers = [] }) {
         <div
           id="carouselExampleCaptions"
           className="carousel slide"
-          data-bs-ride="carousel"
-          data-bs-interval="3000"
         >
           <div className="carousel-indicators">
             <button
@@ -259,7 +369,11 @@ export default function HomePage({ bestsellers = [] }) {
         <section className="shipping-categry">
           <div className="container">
             <div className="row">
-              <div className="col-md-3">
+              <div
+                className="col-md-3"
+                data-aos="fade-up"
+                data-aos-delay="0"
+              >
                 <div className="safe-payment">
                   <img
                     src="/img/free-shiping.svg"
@@ -271,7 +385,11 @@ export default function HomePage({ bestsellers = [] }) {
                 </div>
               </div>
 
-              <div className="col-md-3">
+              <div
+                className="col-md-3"
+                data-aos="fade-up"
+                data-aos-delay="100"
+              >
                 <div className="safe-payment">
                   <img src="/img/refund.svg" className="img-fluid" alt="free" />
                   <h2>Get Refund</h2>
@@ -279,7 +397,11 @@ export default function HomePage({ bestsellers = [] }) {
                 </div>
               </div>
 
-              <div className="col-md-3">
+              <div
+                className="col-md-3"
+                data-aos="fade-up"
+                data-aos-delay="200"
+              >
                 <div className="safe-payment">
                   <img
                     src="/img/safe-payment.svg"
@@ -291,7 +413,11 @@ export default function HomePage({ bestsellers = [] }) {
                 </div>
               </div>
 
-              <div className="col-md-3">
+              <div
+                className="col-md-3"
+                data-aos="fade-up"
+                data-aos-delay="300"
+              >
                 <div className="safe-payment">
                   <img
                     src="/img/support.svg"
@@ -449,7 +575,11 @@ export default function HomePage({ bestsellers = [] }) {
       {/* BESTSELLERS */}
       <section className="category-section Bestsaller_section py-5">
         <div className="container">
-          <div className="our-catgery-heading alltimebest">
+          <div
+            className="our-catgery-heading alltimebest"
+            data-aos="fade-up"
+            data-aos-duration="700"
+          >
             <h2>
               All Time Bestsellers <span></span>
             </h2>
@@ -461,10 +591,12 @@ export default function HomePage({ bestsellers = [] }) {
 
           <div className="row text-center justify-content-center g-4">
             {bestsellers.length > 0 ? (
-              bestsellers.map((product) => (
+              bestsellers.map((product, idx) => (
                 <div
                   key={product.slug}
                   className="col-6 col-sm-4 col-md-3 col-lg-3"
+                  data-aos="fade-up"
+                  data-aos-delay={(idx % 4) * 100}
                 >
                   <div className="category-item-annivesary">
                     <Link href={`/products/${product.slug}`}>
@@ -505,7 +637,11 @@ export default function HomePage({ bestsellers = [] }) {
       {/* TESTIMONIALS */}
       <section className="testimonails secP">
         <div className="container">
-          <div className="premium-domainheading mb-2">
+          <div
+            className="premium-domainheading mb-2"
+            data-aos="fade-up"
+            data-aos-duration="700"
+          >
             <p>Testimonials</p>
             <h2>
               {" "}
@@ -513,7 +649,11 @@ export default function HomePage({ bestsellers = [] }) {
               Gifts <span></span>
             </h2>
           </div>
-          <div className="owl-carousel owl-theme owl-carousel2">
+          <div
+            className="owl-carousel owl-theme owl-carousel2"
+            data-aos="fade-up"
+            data-aos-delay="150"
+          >
             {testimonials.map((t, i) => (
               <div className="item" key={i}>
                 <div className="testimonails-slider">

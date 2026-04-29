@@ -36,6 +36,18 @@ const loginSchema = z.object({
     .max(72),
 });
 
+/**
+ * Dev-only diagnostic logger. Prints WHY an admin login attempt failed so
+ * the developer can tell "no such user" from "bad password" from "not an
+ * admin" from "inactive". Stripped in production so we never leak which
+ * emails exist in our database.
+ */
+function devLog(reason: string, email: string) {
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(`[admin-login] ${reason} (email=${email})`);
+  }
+}
+
 export async function POST(req: Request) {
   let raw: unknown;
   try {
@@ -68,31 +80,42 @@ export async function POST(req: Request) {
 
   const { email, password } = parsed.data;
 
-  // Generic message for failed login — never disclose whether the email exists.
-  const incorrect = NextResponse.json({
-    success: false,
-    message: "Incorrect email or password.",
-  });
+  // Generic 401 for the "credentials don't match" cases. Same response
+  // body and status whether the email is unknown, the password is wrong,
+  // or the account is real but not an admin — we deliberately avoid
+  // leaking which one to attackers.
+  const incorrect = () =>
+    NextResponse.json(
+      { success: false, message: "Incorrect email or password." },
+      { status: 401 },
+    );
 
   const user = await getUserByEmail(email);
-  if (!user) return incorrect;
+  if (!user) {
+    devLog("no user with that email", email);
+    return incorrect();
+  }
 
-  if (!(await verifyPassword(password, user.password))) return incorrect;
+  if (!(await verifyPassword(password, user.password))) {
+    devLog("password mismatch", email);
+    return incorrect();
+  }
 
   if (!user.is_active) {
+    devLog("account is inactive (is_active=0)", email);
     await destroyAdminSession();
     return NextResponse.json(
       {
         success: false,
         message: "Your account is inactive. Please contact support.",
       },
-      { status: 404 },
+      { status: 403 },
     );
   }
 
   if (user.role !== "admin") {
-    // Don't tell them why — looks like a bad password to non-admins.
-    return incorrect;
+    devLog(`user is not an admin (role=${user.role})`, email);
+    return incorrect();
   }
 
   await createAdminSession({
@@ -101,6 +124,10 @@ export async function POST(req: Request) {
     role: user.role,
   });
   await touchLastLogin(user.id);
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[admin-login] success (email=${email})`);
+  }
 
   return NextResponse.json({
     success: true,

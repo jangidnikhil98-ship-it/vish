@@ -152,32 +152,17 @@ export default function SiteRootLayout({
         />
 
         {/* Non-critical CSS — Owl Carousel & AOS animations are below the
-            fold. We load them with media="print" so the browser fetches
-            them but does NOT block first paint, then a tiny inline script
-            promotes them to media="all". Falls back gracefully if JS is off
-            via <noscript>. */}
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css"
-          media="print"
-          data-async-css=""
-        />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css"
-          media="print"
-          data-async-css=""
-        />
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/aos@2.3.1/dist/aos.css"
-          media="print"
-          data-async-css=""
-        />
+            fold. We inject them via an inline script (rather than render
+            them in the React tree) so the lazy-load trick — load with
+            media="print" then flip to media="all" on load — does not cause
+            a hydration mismatch. Falls back gracefully via <noscript>. */}
         <script
           dangerouslySetInnerHTML={{
-            __html:
-              "document.querySelectorAll('link[data-async-css]').forEach(function(l){l.media='all'});",
+            __html: `(function(){var hrefs=[
+"https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css",
+"https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css",
+"https://unpkg.com/aos@2.3.1/dist/aos.css"
+];hrefs.forEach(function(href){var l=document.createElement('link');l.rel='stylesheet';l.href=href;l.media='print';l.onload=function(){this.onload=null;this.media='all';};document.head.appendChild(l);});})();`,
           }}
         />
         <noscript>

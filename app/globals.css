@@ -3465,3 +3465,133 @@ section.success-section {
 @media (min-width: 768px) {
   .category-slider { overflow: visible; }
 }
+
+/* ============================================================== */
+/* ============== HOMEPAGE POLISH ANIMATIONS  =================== */
+/* ============================================================== */
+
+/* Ken Burns: a slow, almost-imperceptible zoom on the active hero
+   slide. Restarts on every slide change because Bootstrap toggles
+   the `.active` class. */
+@keyframes vg-ken-burns {
+  0%   { transform: scale(1)     translate3d(0, 0, 0); }
+  100% { transform: scale(1.06)  translate3d(0, -1%, 0); }
+}
+.hero-banner .carousel-item.active img {
+  animation: vg-ken-burns 7s ease-out both;
+  will-change: transform;
+}
+
+/* Hero caption: stagger the title / subtitle / CTA so the slide feels
+   composed instead of dumped onto the screen. */
+@keyframes vg-rise-fade {
+  0%   { opacity: 0; transform: translate3d(0, 18px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.hero-banner .carousel-item.active .carousel-caption span,
+.hero-banner .carousel-item.active .carousel-caption h5,
+.hero-banner .carousel-item.active .carousel-caption p,
+.hero-banner .carousel-item.active .carousel-caption .hero-shop-btn {
+  animation: vg-rise-fade 0.7s ease-out both;
+}
+.hero-banner .carousel-item.active .carousel-caption span        { animation-delay: 0.10s; }
+.hero-banner .carousel-item.active .carousel-caption h5          { animation-delay: 0.25s; }
+.hero-banner .carousel-item.active .carousel-caption p           { animation-delay: 0.40s; }
+.hero-banner .carousel-item.active .carousel-caption .hero-shop-btn { animation-delay: 0.55s; }
+
+/* Hero CTA — soft "shine" sweep on hover for a premium feel. */
+.hero-banner .carousel-caption .hero-shop-btn { display: inline-block; }
+.hero-banner .carousel-caption button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero-banner .carousel-caption button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.7s ease;
+  z-index: -1;
+}
+.hero-banner .carousel-caption button:hover::before {
+  transform: translateX(120%);
+}
+
+/* Bestseller cards — subtle lift + image zoom on hover. The container
+   already has a soft shadow; we just amplify it on hover. */
+section.category-section.Bestsaller_section .category-item-annivesary {
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+  will-change: transform;
+}
+section.category-section.Bestsaller_section .category-item-annivesary:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px rgba(96, 56, 19, 0.18);
+}
+section.category-section.Bestsaller_section .category-item {
+  overflow: hidden;
+}
+section.category-section.Bestsaller_section .category-item-annivesary:hover .category-item img {
+  transform: scale(1.06);
+}
+
+/* Shipping strip — soft hover lift so the four feature cards feel
+   tactile instead of static. */
+.safe-payment {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.safe-payment:hover {
+  transform: translateY(-4px);
+  background: rgb(96 56 19 / 8%);
+  box-shadow: 0 10px 22px rgba(96, 56, 19, 0.10);
+}
+.safe-payment img {
+  transition: transform 0.4s ease;
+}
+.safe-payment:hover img {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+/* Section headings — gently underline the brown bar by sliding it in. */
+@keyframes vg-bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.our-catgery-heading h2::after,
+.premium-domainheading h2 + span,
+.premium-domainheading h2 span {
+  transform-origin: left center;
+}
+
+/* Testimonial cards — match the bestseller hover language. */
+.testimonails .testimonails-slider {
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+.testimonails .testimonails-slider:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(96, 56, 19, 0.14);
+}
+
+/* Respect the user's OS-level "reduce motion" preference. We turn off
+   every decorative animation we just added (keeps hover/focus styling). */
+@media (prefers-reduced-motion: reduce) {
+  .hero-banner .carousel-item.active img,
+  .hero-banner .carousel-item.active .carousel-caption span,
+  .hero-banner .carousel-item.active .carousel-caption h5,
+  .hero-banner .carousel-item.active .carousel-caption p,
+  .hero-banner .carousel-item.active .carousel-caption .hero-shop-btn {
+    animation: none !important;
+  }
+  .hero-banner .carousel-caption button::before { display: none; }
+  section.category-section.Bestsaller_section .category-item-annivesary,
+  .safe-payment,
+  .testimonails .testimonails-slider {
+    transition: none !important;
+  }
+}

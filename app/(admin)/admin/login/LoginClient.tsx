@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import "./admin-login.css";
 
@@ -10,8 +9,6 @@ import "./admin-login.css";
  * brand color (#603813). Form is wired to /api/admin/auth/login.
  */
 export default function LoginClient() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -52,8 +49,19 @@ export default function LoginClient() {
       };
 
       if (data.success) {
-        router.push(data.redirect_url ?? "/admin/dashboard");
-        router.refresh();
+        // IMPORTANT: a HARD navigation (not router.push) is required here.
+        // The Pixelstrap Zono theme's jQuery init scripts (sidebar-menu.js,
+        // simplebar custom.js, feather-icons.js, etc.) only run once on
+        // initial page load — they bind handlers, render feather icons,
+        // and toggle the `.compact-wrapper` / `close_icon` classes that
+        // hide the default theme favicon. With a soft `router.push`, the
+        // sidebar mounts AFTER those scripts have already executed
+        // against the (sidebar-less) login page, so the dashboard
+        // renders unstyled until the user manually refreshes. A hard
+        // reload guarantees the theme initializes against the rendered
+        // sidebar. `replace` (not `assign`) so the back button doesn't
+        // bring the user back to the login form.
+        window.location.replace(data.redirect_url ?? "/admin/dashboard");
         return;
       }
 
@@ -77,14 +85,14 @@ export default function LoginClient() {
                   <img
                     className="img-fluid for-light"
                     src="/img/frontend/logo.png"
-                    alt="loginpage"
+                    alt="Vishwakarma Gifts"
                     width={600}
                   />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     className="img-fluid for-dark"
-                    src="/backend/images/logo/logo.svg"
-                    alt="loginpage"
+                    src="/img/frontend/logo.png"
+                    alt="Vishwakarma Gifts"
                   />
                 </a>
               </div>
@@ -137,10 +145,16 @@ export default function LoginClient() {
                         className="show-hide"
                         onClick={() => setShowPwd((s) => !s)}
                         style={{ cursor: "pointer" }}
+                        role="button"
+                        aria-label={
+                          showPwd ? "Hide password" : "Show password"
+                        }
                       >
-                        <span className={showPwd ? "hide" : "show"}>
-                          {showPwd ? "hide" : "show"}
-                        </span>
+                        {/* Pixelstrap CSS injects the visible label via
+                            `.show-hide span:before { content: "show"|"hide" }`.
+                            If we ALSO render the word inside the span we get
+                            "showshow" / "hidehide" — so the span stays empty. */}
+                        <span className={showPwd ? "hide" : "show"} />
                       </div>
                     </div>
                   </div>

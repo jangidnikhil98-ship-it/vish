@@ -6,7 +6,14 @@
 }
 
 /* Match Pixelstrap Zono's input styling override that the Blade file
-   inlined for the wood theme. */
+   inlined for the wood theme.
+   Note: the previous `color: #eae4db !important` rule was a bug — that
+   value is meant to be a BACKGROUND tone (light beige), and using it as
+   the text color on a near-identical background made typed input
+   invisible until selection (browsers invert colors on selection,
+   which is why the text became visible once the user clicked into the
+   field). Replaced with the brand brown to match the rest of the form
+   and to guarantee strong contrast against the beige background. */
 .theme-form input[type="date"],
 .theme-form input[type="datetime-local"],
 .theme-form input[type="email"],
@@ -22,12 +29,24 @@
 .theme-form input[type="week"],
 .theme-form select,
 .theme-form textarea {
-  background-color: #fff;
-  border-color: #ecf3fa;
+  background-color: #ede5db;
+  border-color: #d9cfc1;
   box-shadow: none;
-  color: #eae4db !important;
+  color: #2b1a0b !important;
   font-size: 14px;
   padding: 12px 10px;
+}
+
+/* Defeat the faint blue/yellow tint Chromium applies to autofilled
+   inputs — keep our beige + dark-brown contrast no matter what. */
+.theme-form input:-webkit-autofill,
+.theme-form input:-webkit-autofill:hover,
+.theme-form input:-webkit-autofill:focus,
+.theme-form input:-webkit-autofill:active {
+  -webkit-text-fill-color: #2b1a0b !important;
+  -webkit-box-shadow: 0 0 0 1000px #ede5db inset !important;
+  caret-color: #2b1a0b;
+  transition: background-color 9999s ease-out, color 9999s ease-out;
 }
 
 /* Show/hide toggle visual */
