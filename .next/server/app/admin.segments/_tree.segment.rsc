@@ -1,4 +1,4 @@
-:HL["/_next/static/css/184459d188edab89.css","style"]
+:HL["/_next/static/css/dc0049391df53b19.css","style"]
 :HL["https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@200;300;400;600;700;800;900&display=swap","style"]
 :HL["https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i,700,700i,900&display=swap","style"]
 :HL["/backend/css/font-awesome.css","style"]
@@ -15,4 +15,4 @@
 :HL["/backend/css/color-1.css","style",{"media":"screen"}]
 :HL["/backend/css/responsive.css","style"]
 :HL["/backend/css/developer.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":0,"slots":{"children":{"name":"(admin)","param":null,"prefetchHints":16,"slots":{"children":{"name":"admin","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}}}},"staleTime":300,"buildId":"BGTKA0fj2IVW4vodG84Us"}
+0:{"tree":{"name":"","param":null,"prefetchHints":0,"slots":{"children":{"name":"(admin)","param":null,"prefetchHints":16,"slots":{"children":{"name":"admin","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}}}},"staleTime":300,"buildId":"LvcbTG-wuhpUizAK9yvqP"}
