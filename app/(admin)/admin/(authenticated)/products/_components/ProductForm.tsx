@@ -76,6 +76,33 @@ export function ProductForm({
       rows.map((row, idx) => (idx === i ? { ...row, [key]: value } : row)),
     );
 
+  /**
+   * Final price = price × (1 − discount/100).
+   *
+   * Returns `null` when the inputs aren't a valid pair of numbers (e.g.
+   * the field is empty mid-edit) so the UI can render a dash instead of
+   * NaN. Discount is clamped to [0, 100] so a stray "150" can't produce
+   * a negative price in the preview while the user is still typing.
+   */
+  const computeFinalPrice = (
+    priceRaw: string,
+    discountRaw: string,
+  ): number | null => {
+    const price = Number(priceRaw);
+    const discount = Number(discountRaw);
+    if (!Number.isFinite(price)) return null;
+    const d = Number.isFinite(discount)
+      ? Math.min(100, Math.max(0, discount))
+      : 0;
+    return price - (price * d) / 100;
+  };
+
+  const formatINR = (n: number) =>
+    new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+
   const addSizeRow = () =>
     setSizes((rows) => [
       ...rows,
@@ -306,6 +333,7 @@ export function ProductForm({
                   <th>Value</th>
                   <th>Price (₹)</th>
                   <th>Discount %</th>
+                  <th>Final Price (₹)</th>
                   <th />
                 </tr>
               </thead>
@@ -366,6 +394,36 @@ export function ProductForm({
                           updateSize(i, "discount", e.target.value)
                         }
                       />
+                    </td>
+                    <td style={{ minWidth: 130 }}>
+                      {(() => {
+                        const fp = computeFinalPrice(s.price, s.discount);
+                        if (fp === null) {
+                          return (
+                            <span className="text-muted">—</span>
+                          );
+                        }
+                        const hasDiscount =
+                          Number(s.discount) > 0 && Number(s.price) > 0;
+                        return (
+                          <div className="d-flex align-items-center gap-2">
+                            <span
+                              className="fw-bold"
+                              style={{ color: "#603813" }}
+                            >
+                              ₹{formatINR(fp)}
+                            </span>
+                            {hasDiscount ? (
+                              <small
+                                className="text-decoration-line-through text-muted"
+                                title="Original price before discount"
+                              >
+                                ₹{formatINR(Number(s.price))}
+                              </small>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td>
                       {sizes.length > 1 ? (
