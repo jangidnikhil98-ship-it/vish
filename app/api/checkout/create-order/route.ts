@@ -1,11 +1,26 @@
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
+
 import { fail, handleError, ok } from "@/lib/api";
 import { readSession } from "@/lib/auth";
 import { createOrderSchema } from "@/lib/validators/checkout";
-import { createOrderWithItems, priceCart } from "@/lib/queries/orders";
+import {
+  createOrderWithItems,
+  priceCart,
+  setShiprocketDetails,
+} from "@/lib/queries/orders";
 import { razorpay, razorpayKeyId } from "@/lib/razorpay";
+import { resolveCoupon } from "@/lib/queries/admin/coupons";
+import {
+  getCheckoutSettings,
+  getShiprocketSettings,
+} from "@/lib/queries/admin/settings";
+import {
+  createShiprocketOrder,
+  ShiprocketError,
+} from "@/lib/shiprocket";
+import { notifyOrderPlaced } from "@/app/api/checkout/verify-payment/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,26 +28,31 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/checkout/create-order
  *
- * Body: { shipping, items }   (see lib/validators/checkout.ts)
+ * Body (CreateOrderInput): { shipping, items, couponCode?, paymentMethod }
  *
- * Mirrors PaymentController::create with these corrections:
- *   - Cart prices come from the DB (server-trusted), not the client.
- *   - `orders.grand_total` is stored in INR (matches DECIMAL(10,2)).
- *   - `order_items` are persisted (was missing in the Laravel version).
- *   - `payment_details.status` starts as 'created' (was 'completed').
- *   - `payment_details.amount` is saved.
+ * Branches:
+ *   • paymentMethod = "razorpay" → creates a Razorpay order, persists ours,
+ *                                   returns { razorpayOrderId, key, amount }
+ *                                   so the client opens the Razorpay modal.
+ *   • paymentMethod = "cod"      → no gateway call. Persists order with
+ *                                   payment_status="pending", optionally
+ *                                   pushes the order to Shiprocket, fires
+ *                                   notifications, returns { orderNumber,
+ *                                   orderId, paymentMethod: "cod" } so the
+ *                                   client redirects to /order/success.
  *
- * Returns:
- *   { razorpayOrderId, amount, currency, key, orderNumber, orderId }
- *   `amount` is in **paise** (Razorpay convention).
+ * Server-side guarantees:
+ *   - Cart prices come from `product_sizes.final_price` (DB-trusted).
+ *   - Coupon discount is recomputed here (the apply-coupon endpoint's
+ *     return value is NOT trusted).
+ *   - Final total = subtotal − discount + shipping + cod_fee, computed
+ *     server-side. The client never controls money.
  */
 export async function POST(req: NextRequest) {
   try {
     const json = await req.json().catch(() => null);
     const parsed = createOrderSchema.safeParse(json);
     if (!parsed.success) {
-      // Build a {dotted.path: ["msg"]} map so the client can show per-field
-      // hints (e.g. shipping.phone -> "Phone must be exactly 10 digits").
       const errors: Record<string, string[]> = {};
       for (const issue of parsed.error.issues) {
         const path = issue.path.join(".") || "_";
@@ -40,8 +60,9 @@ export async function POST(req: NextRequest) {
       }
       return fail("Invalid checkout payload", 422, { errors });
     }
-    const { shipping, items } = parsed.data;
+    const { shipping, items, couponCode, paymentMethod } = parsed.data;
 
+    /* ---------------- 1) Server-trusted cart pricing ---------------- */
     const priced = await priceCart(items);
     if (!priced) {
       return fail(
@@ -53,7 +74,7 @@ export async function POST(req: NextRequest) {
       return fail("Cart total must be greater than zero", 400);
     }
 
-    // Stable guest_id cookie so the same browser is recognised across requests.
+    /* ---------------- 2) Stable guest cookie ----------------------- */
     const cookieStore = await cookies();
     let guestId = cookieStore.get("guest_id")?.value ?? null;
     if (!guestId) {
@@ -66,57 +87,205 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Attach the order to the logged-in user (if any) so they can see it on
-    // their /dashboard/orders page later.
     const session = await readSession();
     const userId = session?.sub ?? null;
 
-    // Razorpay expects integer paise.
-    const amountInPaise = Math.round(priced.subtotal * 100);
+    /* ---------------- 3) COD eligibility check --------------------- */
+    const checkoutSettings = await getCheckoutSettings();
 
-    // 1) Create Razorpay order FIRST (so we know its id before the DB row).
-    //    If Razorpay fails we never write a half-baked order to the DB.
-    const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random()
-      .toString(36)
-      .slice(2, 6)
-      .toUpperCase()}`;
+    if (paymentMethod === "cod") {
+      if (!checkoutSettings.codEnabled) {
+        return fail("Cash on Delivery is not available right now.", 400);
+      }
+      if (
+        checkoutSettings.codMinOrderAmount > 0 &&
+        priced.subtotal < checkoutSettings.codMinOrderAmount
+      ) {
+        return fail(
+          `Minimum order for COD is ₹${checkoutSettings.codMinOrderAmount.toFixed(0)}.`,
+          400,
+        );
+      }
+      if (
+        checkoutSettings.codMaxOrderAmount > 0 &&
+        priced.subtotal > checkoutSettings.codMaxOrderAmount
+      ) {
+        return fail(
+          `Maximum order for COD is ₹${checkoutSettings.codMaxOrderAmount.toFixed(0)}. Please pay online.`,
+          400,
+        );
+      }
+    }
 
-    const rzpOrder = await razorpay().orders.create({
-      receipt: orderNumber,
-      amount: amountInPaise,
-      currency: "INR",
-      notes: {
-        guest_id: guestId,
-        item_count: String(priced.totalQuantity),
-      },
-    });
+    /* ---------------- 4) Coupon (server-recomputed) ---------------- */
+    let appliedCoupon: {
+      couponId: number;
+      code: string;
+      discountAmount: number;
+      freeShipping: boolean;
+    } | null = null;
 
-    // 2) Persist the order, items, shipping, payment row in one transaction.
+    if (couponCode) {
+      const c = await resolveCoupon({
+        code: couponCode,
+        subtotal: priced.subtotal,
+        paymentMethod,
+      });
+      if (!c.ok) {
+        return fail(c.message, 422, { field: "couponCode" });
+      }
+      appliedCoupon = {
+        couponId: c.coupon.id,
+        code: c.coupon.code,
+        discountAmount: c.discountAmount,
+        freeShipping: c.freeShipping,
+      };
+    }
+
+    /* ---------------- 5) Money math (server) ----------------------- */
+    const baseShippingFee = checkoutSettings.defaultShippingFee;
+    const shippingFee = appliedCoupon?.freeShipping ? 0 : baseShippingFee;
+    const codFee = paymentMethod === "cod" ? checkoutSettings.codFee : 0;
+    const discountAmount = appliedCoupon?.discountAmount ?? 0;
+    const grandTotal =
+      Math.round(
+        (priced.subtotal - discountAmount + shippingFee + codFee) * 100,
+      ) / 100;
+
+    if (grandTotal <= 0) {
+      return fail("Order total must be greater than zero", 400);
+    }
+
+    /* ---------------- 6) Razorpay branch (online payments) -------- */
+    let rzpOrderId: string | null = null;
+    if (paymentMethod === "razorpay") {
+      const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random()
+        .toString(36)
+        .slice(2, 6)
+        .toUpperCase()}`;
+      const rzp = await razorpay().orders.create({
+        receipt: orderNumber,
+        amount: Math.round(grandTotal * 100), // paise
+        currency: "INR",
+        notes: {
+          guest_id: guestId,
+          item_count: String(priced.totalQuantity),
+          coupon: appliedCoupon?.code ?? "",
+        },
+      });
+      rzpOrderId = rzp.id;
+    }
+
+    /* ---------------- 7) Persist ----------------------------------- */
     const dbOrder = await createOrderWithItems({
       userId,
       guestId,
       shipping,
       pricedCart: priced,
-      razorpayOrderId: rzpOrder.id,
-      paymentMethod: "razorpay",
+      razorpayOrderId: rzpOrderId,
+      paymentMethod,
+      appliedCoupon,
+      shippingFee,
+      codFee,
     });
 
-    return ok(
-      {
-        razorpayOrderId: rzpOrder.id,
-        amount: amountInPaise,
-        currency: "INR",
-        key: razorpayKeyId(),
+    /* ---------------- 8) For COD: optional Shiprocket push --------- */
+    if (paymentMethod === "cod") {
+      const sr = await getShiprocketSettings();
+      if (sr.autoCreateOrder && process.env.SHIPROCKET_EMAIL) {
+        // Fire-and-forget — never block the customer's checkout if SR is down.
+        void (async () => {
+          try {
+            const res = await createShiprocketOrder({
+              orderId: dbOrder.order_number,
+              orderDate: new Date().toISOString().slice(0, 19).replace("T", " "),
+              pickupLocation: sr.pickupLocation,
+              paymentMethod: "COD",
+              billing: {
+                customerName: shipping.first_name,
+                lastName: shipping.last_name,
+                address: shipping.address || shipping.apartment || "—",
+                address2: shipping.apartment,
+                city: shipping.city || shipping.state,
+                state: shipping.state,
+                pincode: shipping.pincode,
+                email: shipping.email,
+                phone: shipping.phone,
+              },
+              orderItems: priced.items.map((it) => ({
+                name: it.productName ?? "Product",
+                sku: `P-${it.productId}${it.sizeId ? `-S${it.sizeId}` : ""}`,
+                units: it.quantity,
+                sellingPrice: it.unitPrice,
+              })),
+              subTotal: grandTotal,
+              weightKg: sr.defaultWeightKg,
+              lengthCm: sr.defaultLengthCm,
+              breadthCm: sr.defaultBreadthCm,
+              heightCm: sr.defaultHeightCm,
+            });
+            await setShiprocketDetails({
+              orderId: dbOrder.id,
+              shiprocketOrderId: res.shiprocketOrderId,
+              shiprocketShipmentId: res.shipmentId,
+              awbCode: res.awbCode,
+            });
+          } catch (err) {
+            const sre = err as ShiprocketError;
+            console.error(
+              "[shiprocket] auto-create failed for order",
+              dbOrder.order_number,
+              sre.status ?? "",
+              sre.message,
+            );
+          }
+        })();
+      }
+
+      // Send the "Order received — pay on delivery" emails / WhatsApp.
+      void notifyOrderPlaced({
+        orderId: dbOrder.id,
+        paymentMethod: "cod",
+      });
+
+      return ok({
+        paymentMethod: "cod",
         orderNumber: dbOrder.order_number,
         orderId: dbOrder.id,
-        prefill: {
-          name: `${shipping.first_name} ${shipping.last_name ?? ""}`.trim(),
-          email: shipping.email,
-          contact: shipping.phone,
+        amount: grandTotal,
+        currency: "INR",
+        breakdown: {
+          subtotal: priced.subtotal,
+          discountAmount,
+          shippingFee,
+          codFee,
+          total: grandTotal,
         },
+      });
+    }
+
+    /* ---------------- 9) Razorpay client payload ------------------- */
+    return ok({
+      paymentMethod: "razorpay",
+      razorpayOrderId: rzpOrderId,
+      amount: Math.round(grandTotal * 100), // paise
+      currency: "INR",
+      key: razorpayKeyId(),
+      orderNumber: dbOrder.order_number,
+      orderId: dbOrder.id,
+      breakdown: {
+        subtotal: priced.subtotal,
+        discountAmount,
+        shippingFee,
+        codFee,
+        total: grandTotal,
       },
-      { status: 200 },
-    );
+      prefill: {
+        name: `${shipping.first_name} ${shipping.last_name ?? ""}`.trim(),
+        email: shipping.email,
+        contact: shipping.phone,
+      },
+    });
   } catch (err) {
     return handleError(err);
   }

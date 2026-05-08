@@ -99,16 +99,21 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Send all post-payment notifications (customer email, admin email, admin
- * WhatsApp, optional customer WhatsApp). Wrapped in a single helper so
- * both the verify-payment route and the webhook can call it.
+ * Send all post-checkout notifications (customer email, admin email, admin
+ * WhatsApp, optional customer WhatsApp). Used by:
+ *   - verify-payment (Razorpay) on first transition to paid
+ *   - payment/webhook (Razorpay) on first transition to paid
+ *   - create-order (COD) immediately after the order is persisted
  *
  * Never throws — every leg is independently caught so a flaky email or
  * WhatsApp gateway can't break the others.
  */
-export async function notifyOrderPaid(params: {
+export async function notifyOrderPlaced(params: {
   orderId: number;
-  razorpayPaymentId: string;
+  /** "razorpay" → "Order confirmed" wording. "cod" → "Pay on delivery". */
+  paymentMethod: "razorpay" | "cod";
+  /** Only set when paymentMethod = "razorpay". */
+  razorpayPaymentId?: string | null;
 }): Promise<void> {
   let order;
   try {
@@ -131,6 +136,14 @@ export async function notifyOrderPaid(params: {
     giftWrap: it.giftWrap,
   }));
 
+  const breakdown = {
+    subtotal: order.subtotal,
+    discountAmount: order.discountAmount,
+    couponCode: order.couponCode,
+    shippingFee: order.shippingFee,
+    codFee: order.codFee,
+  };
+
   // 1) Customer order confirmation email
   if (order.customerEmail) {
     try {
@@ -141,7 +154,9 @@ export async function notifyOrderPaid(params: {
         totalAmount: order.totalAmount,
         items,
         shipping: order.shipping,
-        paymentId: params.razorpayPaymentId,
+        paymentId: params.razorpayPaymentId ?? null,
+        paymentMethod: params.paymentMethod,
+        breakdown,
       });
     } catch (err) {
       console.error("[notify] customer email failed:", err);
@@ -158,7 +173,8 @@ export async function notifyOrderPaid(params: {
       totalAmount: order.totalAmount,
       items,
       shipping: order.shipping,
-      paymentId: params.razorpayPaymentId,
+      paymentId: params.razorpayPaymentId ?? null,
+      paymentMethod: params.paymentMethod,
       adminUrl: `${SITE_URL}/admin/orders`,
     });
   } catch (err) {
@@ -195,4 +211,19 @@ export async function notifyOrderPaid(params: {
       console.error("[notify] customer WhatsApp failed:", err);
     }
   }
+}
+
+/**
+ * Backwards-compatible alias for the Razorpay paths (verify-payment +
+ * webhook). New code should call `notifyOrderPlaced` directly.
+ */
+export async function notifyOrderPaid(params: {
+  orderId: number;
+  razorpayPaymentId: string;
+}): Promise<void> {
+  return notifyOrderPlaced({
+    orderId: params.orderId,
+    paymentMethod: "razorpay",
+    razorpayPaymentId: params.razorpayPaymentId,
+  });
 }

@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { readSession } from "@/lib/auth";
-import { getOrderByRazorpayId, type OrderSummary } from "@/lib/queries/orders";
+import {
+  getOrderByOrderNumber,
+  getOrderByRazorpayId,
+  type OrderSummary,
+} from "@/lib/queries/orders";
 import "./success.css";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +19,12 @@ export const metadata: Metadata = {
 };
 
 type PageProps = {
-  searchParams: Promise<{ order?: string; payment?: string }>;
+  searchParams: Promise<{
+    order?: string;
+    payment?: string;
+    order_number?: string;
+    method?: string;
+  }>;
 };
 
 const formatINR = (n: number): string =>
@@ -32,22 +41,32 @@ const formatDate = (d: Date | null): string => {
 export default async function OrderSuccessPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const razorpayOrderId = sp.order ?? "";
+  const orderNumber = sp.order_number ?? "";
 
   let order: OrderSummary | null = null;
-  if (razorpayOrderId) {
-    const cookieStore = await cookies();
-    const guestId = cookieStore.get("guest_id")?.value ?? null;
-    const session = await readSession();
-    try {
+  const cookieStore = await cookies();
+  const guestId = cookieStore.get("guest_id")?.value ?? null;
+  const session = await readSession();
+
+  try {
+    if (razorpayOrderId) {
       order = await getOrderByRazorpayId({
         razorpayOrderId,
         guestId,
         userId: session?.sub ?? null,
       });
-    } catch (err) {
-      console.error("[order/success] DB error:", err);
+    } else if (orderNumber) {
+      order = await getOrderByOrderNumber({
+        orderNumber,
+        guestId,
+        userId: session?.sub ?? null,
+      });
     }
+  } catch (err) {
+    console.error("[order/success] DB error:", err);
   }
+
+  const isCod = order?.paymentMethod === "cod" || sp.method === "cod";
 
   return (
     <div className="container order-success-wrapper">
@@ -55,10 +74,15 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
         <div className="order-success-icon" aria-hidden="true">
           ✓
         </div>
-        <h1>Thank you — your order is confirmed!</h1>
+        <h1>
+          {isCod
+            ? "Order placed — pay on delivery"
+            : "Thank you — your order is confirmed!"}
+        </h1>
         <p className="text-muted">
-          We&apos;ve emailed you a receipt. Your gift will be crafted with love
-          and shipped soon.
+          {isCod
+            ? "We've emailed you the details. Please keep cash ready when our courier arrives."
+            : "We've emailed you a receipt. Your gift will be crafted with love and shipped soon."}
         </p>
 
         {order ? (
@@ -72,6 +96,26 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
                 Placed on {formatDate(order.createdAt)}
               </div>
             )}
+
+            {isCod ? (
+              <div
+                style={{
+                  background: "#fff7e6",
+                  border: "1px solid #f0c97c",
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  marginTop: 16,
+                  color: "#7a4f00",
+                  textAlign: "left",
+                }}
+              >
+                <strong>💵 Cash on Delivery</strong>
+                <div className="small mt-1">
+                  Please keep <strong>₹{formatINR(order.grandTotal)}</strong>{" "}
+                  ready in cash for the courier.
+                </div>
+              </div>
+            ) : null}
 
             <div className="order-success-summary">
               <h3>Order summary</h3>
@@ -89,10 +133,59 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
                 ))}
               </ul>
 
+              <div className="d-flex justify-content-between mt-3 small text-muted">
+                <span>Subtotal</span>
+                <span>₹{formatINR(order.subtotal)}</span>
+              </div>
+
+              {order.discountAmount > 0 ? (
+                <div
+                  className="d-flex justify-content-between small"
+                  style={{ color: "#2c8b3d" }}
+                >
+                  <span>
+                    Discount{" "}
+                    {order.couponCode ? `(${order.couponCode})` : ""}
+                  </span>
+                  <span>− ₹{formatINR(order.discountAmount)}</span>
+                </div>
+              ) : null}
+
+              {order.shippingFee > 0 ? (
+                <div className="d-flex justify-content-between small text-muted">
+                  <span>Shipping</span>
+                  <span>₹{formatINR(order.shippingFee)}</span>
+                </div>
+              ) : null}
+
+              {order.codFee > 0 ? (
+                <div className="d-flex justify-content-between small text-muted">
+                  <span>COD handling fee</span>
+                  <span>₹{formatINR(order.codFee)}</span>
+                </div>
+              ) : null}
+
               <div className="d-flex justify-content-between mt-3">
-                <strong>Grand total</strong>
+                <strong>{isCod ? "Pay on delivery" : "Grand total"}</strong>
                 <strong>₹{formatINR(order.grandTotal)}</strong>
               </div>
+
+              {order.shipping?.awbCode ? (
+                <div
+                  className="mt-3 small"
+                  style={{
+                    background: "#fdf7ef",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                  }}
+                >
+                  <strong>Tracking:</strong> {order.shipping.awbCode}
+                  {" — "}
+                  <Link href={`/track/${order.shipping.awbCode}`}>
+                    Track shipment
+                  </Link>
+                </div>
+              ) : null}
 
               {order.shipping && (
                 <div className="mt-4 text-start small">

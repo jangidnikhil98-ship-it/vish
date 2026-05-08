@@ -27,20 +27,71 @@ type ShippingForm = {
   is_save: boolean;
 };
 
+type PaymentMethod = "razorpay" | "cod";
+
 type CreateOrderResponse = {
   success: boolean;
   message?: string;
-  data?: {
-    razorpayOrderId: string;
-    amount: number;
-    currency: string;
-    key: string;
-    orderNumber: string;
-    orderId: number;
-    prefill: { name: string; email: string; contact: string };
-  };
+  data?:
+    | {
+        paymentMethod: "razorpay";
+        razorpayOrderId: string;
+        amount: number; // paise
+        currency: string;
+        key: string;
+        orderNumber: string;
+        orderId: number;
+        breakdown: PriceBreakdown;
+        prefill: { name: string; email: string; contact: string };
+      }
+    | {
+        paymentMethod: "cod";
+        amount: number; // INR rupees
+        currency: string;
+        orderNumber: string;
+        orderId: number;
+        breakdown: PriceBreakdown;
+      };
   errors?: Record<string, string[]>;
 };
+
+type ApplyCouponResponse = {
+  success: boolean;
+  message?: string;
+  data?: {
+    code: string;
+    type: "percent" | "free_shipping";
+    discountAmount: number;
+    freeShipping: boolean;
+    message: string;
+    subtotal: number;
+  };
+};
+
+type ServiceabilityResponse = {
+  success: boolean;
+  data?: {
+    serviceable: boolean;
+    codAvailable: boolean;
+    cheapestRate: number | null;
+    estimatedDays: number | null;
+  };
+};
+
+interface PriceBreakdown {
+  subtotal: number;
+  discountAmount: number;
+  shippingFee: number;
+  codFee: number;
+  total: number;
+}
+
+interface AppliedCoupon {
+  code: string;
+  type: "percent" | "free_shipping";
+  discountAmount: number;
+  freeShipping: boolean;
+}
 
 type RazorpayHandlerArgs = {
   razorpay_payment_id: string;
@@ -95,14 +146,22 @@ const cartLineToApiItem = (it: CartItem) => ({
   quantity: it.quantity,
 });
 
+interface CheckoutSettings {
+  codEnabled: boolean;
+  codFee: number;
+  defaultShippingFee: number;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
 export default function CheckoutClient({
   states,
+  settings,
 }: {
   states: readonly string[];
+  settings: CheckoutSettings;
 }) {
   const router = useRouter();
   const { items, total, clearCart } = useCart();
@@ -116,12 +175,23 @@ export default function CheckoutClient({
   >("idle");
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<{
-    kind: "info" | "error";
+    kind: "info" | "error" | "success";
     text: string;
   } | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
 
-  // Hydrate last-used shipping from localStorage (matches `$lastShipping` prefill)
+  /* ----- payment method ----- */
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
+  const [codAvailable, setCodAvailable] = useState<boolean>(settings.codEnabled);
+
+  /* ----- coupon state ----- */
+  const [couponInput, setCouponInput] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+
+  /* ----- hydrate last-used shipping from localStorage ----- */
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(SHIPPING_STORAGE_KEY);
@@ -134,9 +204,26 @@ export default function CheckoutClient({
     }
   }, []);
 
-  // Subtotal recompute (already exposed by useCart, but kept local for clarity)
+  /* ----- Subtotal + computed totals ----- */
   const subtotal = useMemo(() => total, [total]);
   const empty = items.length === 0;
+
+  const breakdown = useMemo<PriceBreakdown>(() => {
+    const discountAmount = appliedCoupon?.discountAmount ?? 0;
+    const baseShipping = settings.defaultShippingFee;
+    const shippingFee = appliedCoupon?.freeShipping ? 0 : baseShipping;
+    const codFee = paymentMethod === "cod" ? settings.codFee : 0;
+    const t =
+      Math.round((subtotal - discountAmount + shippingFee + codFee) * 100) /
+      100;
+    return {
+      subtotal,
+      discountAmount,
+      shippingFee,
+      codFee,
+      total: t < 0 ? 0 : t,
+    };
+  }, [subtotal, appliedCoupon, paymentMethod, settings]);
 
   /* ----- field handlers ----- */
   const setField = <K extends keyof ShippingForm>(
@@ -147,17 +234,21 @@ export default function CheckoutClient({
     if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
-  /* ----- pincode async validation (api.postalpincode.in, same as Blade) ----- */
+  /* ----- pincode async validation + COD serviceability ----- */
   useEffect(() => {
     if (!/^\d{6}$/.test(form.pincode)) {
       setPincodeStatus("idle");
+      setCodAvailable(settings.codEnabled);
       return;
     }
     const controller = new AbortController();
     setPincodeStatus("checking");
-    fetch(`https://api.postalpincode.in/pincode/${form.pincode}`, {
-      signal: controller.signal,
-    })
+
+    // Run the two checks in parallel: India Post validity + Shiprocket COD.
+    const indiaPost = fetch(
+      `https://api.postalpincode.in/pincode/${form.pincode}`,
+      { signal: controller.signal },
+    )
       .then((r) => r.json())
       .then((data) => {
         const ok =
@@ -168,11 +259,84 @@ export default function CheckoutClient({
         setPincodeStatus(ok ? "valid" : "invalid");
       })
       .catch(() => {
-        // ignore aborts; show a soft error otherwise
         if (!controller.signal.aborted) setPincodeStatus("invalid");
       });
+
+    const shipCheck = settings.codEnabled
+      ? fetch(
+          `/api/shipping/serviceability?deliveryPincode=${form.pincode}&cod=1`,
+          { signal: controller.signal },
+        )
+          .then((r) => r.json() as Promise<ServiceabilityResponse>)
+          .then((res) => {
+            if (res.success && res.data) {
+              setCodAvailable(res.data.codAvailable);
+              if (!res.data.codAvailable && paymentMethod === "cod") {
+                setPaymentMethod("razorpay");
+              }
+            }
+          })
+          .catch(() => {
+            // If serviceability fails (e.g. Shiprocket not configured yet),
+            // we keep COD enabled so the user can still place an order.
+          })
+      : Promise.resolve();
+
+    void Promise.allSettled([indiaPost, shipCheck]);
     return () => controller.abort();
-  }, [form.pincode]);
+  }, [form.pincode, settings.codEnabled, paymentMethod]);
+
+  /* ----- coupon apply / remove ----- */
+  const applyCoupon = useCallback(async () => {
+    if (couponBusy) return;
+    setCouponError(null);
+    setCouponMessage(null);
+    const code = couponInput.trim().toUpperCase();
+    if (code.length < 2) {
+      setCouponError("Please enter a coupon code.");
+      return;
+    }
+    if (empty) {
+      setCouponError("Add items to your cart first.");
+      return;
+    }
+    setCouponBusy(true);
+    try {
+      const res = await fetch("/api/checkout/apply-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          items: items.map(cartLineToApiItem),
+          paymentMethod,
+        }),
+      });
+      const json = (await res.json()) as ApplyCouponResponse;
+      if (!json.success || !json.data) {
+        setCouponError(json.message ?? "Could not apply coupon.");
+        setAppliedCoupon(null);
+        return;
+      }
+      setAppliedCoupon({
+        code: json.data.code,
+        type: json.data.type,
+        discountAmount: json.data.discountAmount,
+        freeShipping: json.data.freeShipping,
+      });
+      setCouponMessage(json.data.message);
+    } catch {
+      setCouponError("Network error. Please try again.");
+    } finally {
+      setCouponBusy(false);
+    }
+  }, [couponInput, items, empty, paymentMethod, couponBusy]);
+
+  const removeCoupon = useCallback(() => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponMessage(null);
+    setCouponError(null);
+  }, []);
 
   /* ----- client validation ----- */
   const validate = useCallback((): boolean => {
@@ -202,7 +366,7 @@ export default function CheckoutClient({
         return;
       }
       if (!validate()) return;
-      if (!window.Razorpay) {
+      if (paymentMethod === "razorpay" && !window.Razorpay) {
         setBanner({
           kind: "error",
           text: "Payment library is still loading. Please try again in a moment.",
@@ -243,12 +407,12 @@ export default function CheckoutClient({
               is_save: form.is_save,
             },
             items: items.map(cartLineToApiItem),
+            couponCode: appliedCoupon?.code ?? "",
+            paymentMethod,
           }),
         });
         const created = (await createRes.json()) as CreateOrderResponse;
         if (!created.success || !created.data) {
-          // Surface field-level errors (e.g. phone, pincode) instead of the
-          // generic "Invalid checkout payload" message returned by Zod.
           const fieldMsg = created.errors
             ? Object.entries(created.errors)
                 .map(
@@ -268,11 +432,27 @@ export default function CheckoutClient({
           return;
         }
 
+        /* ============================================================
+           Branch A — COD: the order is already placed. Just clear cart
+           and redirect to the success page.
+           ============================================================ */
+        if (created.data.paymentMethod === "cod") {
+          clearCart();
+          router.push(
+            `/order/success?order_number=${encodeURIComponent(
+              created.data.orderNumber,
+            )}&method=cod`,
+          );
+          return;
+        }
+
+        /* ============================================================
+           Branch B — Razorpay: open the modal as before.
+           ============================================================ */
         const { razorpayOrderId, amount, currency, key, prefill } =
           created.data;
 
-        // 2) Open Razorpay
-        const rzp = new window.Razorpay({
+        const rzp = new window.Razorpay!({
           key,
           amount,
           currency,
@@ -282,19 +462,12 @@ export default function CheckoutClient({
           prefill,
           notes: { source: "next.js-checkout" },
           theme: { color: "#613a18" },
-          // Explicitly enable UPI alongside the other common methods so the
-          // checkout always shows a "Pay via UPI" option (UPI ID + apps + QR).
           method: {
             upi: true,
             card: true,
             netbanking: true,
             wallet: true,
           },
-          // Promote UPI to the top of the modal as a preferred block and
-          // explicitly enable all three UPI flows so the user always gets:
-          //   - "collect"  → enter UPI ID (e.g. name@okaxis) input box
-          //   - "intent"   → choose GPay/PhonePe/Paytm/BHIM app (mobile)
-          //   - "qr"       → scan a UPI QR (desktop)
           config: {
             display: {
               blocks: {
@@ -309,9 +482,7 @@ export default function CheckoutClient({
                 },
               },
               sequence: ["block.upi"],
-              preferences: {
-                show_default_blocks: true,
-              },
+              preferences: { show_default_blocks: true },
             },
           },
           modal: {
@@ -380,12 +551,36 @@ export default function CheckoutClient({
         setSubmitting(false);
       }
     },
-    [items, validate, form, empty, clearCart, router],
+    [
+      items,
+      validate,
+      form,
+      empty,
+      clearCart,
+      router,
+      paymentMethod,
+      appliedCoupon,
+    ],
   );
 
   /* ------------------------------------------------------------------ */
   /*  Render                                                             */
   /* ------------------------------------------------------------------ */
+
+  const payButtonLabel = (() => {
+    if (submitting) return "Processing…";
+    if (empty) return "Your cart is empty";
+    if (paymentMethod === "razorpay" && !scriptReady) return "Loading payment…";
+    if (paymentMethod === "cod")
+      return `Place Order (Pay ₹${formatINR(breakdown.total)} on delivery)`;
+    return `Pay ₹${formatINR(breakdown.total)}`;
+  })();
+
+  const payDisabled =
+    submitting ||
+    empty ||
+    (paymentMethod === "razorpay" && !scriptReady);
+
   return (
     <>
       <Script
@@ -563,49 +758,115 @@ export default function CheckoutClient({
                   <h5>Payment</h5>
                 </div>
 
-                <div className="payment-box">
-                  <p>
-                    <strong>Razorpay Payment Gateway</strong> — UPI (GPay /
-                    PhonePe / Paytm / BHIM), Cards, NetBanking &amp; Wallets
-                  </p>
-                  <div className="d-flex justify-content-start gap-2 mb-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://img.icons8.com/color/48/visa.png"
-                      height="24"
-                      alt="Visa"
+                {/* ============ Payment-method radio group ============ */}
+                <div
+                  className="payment-method-group"
+                  role="radiogroup"
+                  aria-label="Payment method"
+                  style={{ display: "grid", gap: 12, marginBottom: 16 }}
+                >
+                  {/* --- Razorpay --- */}
+                  <label
+                    className={`payment-method-card${paymentMethod === "razorpay" ? " is-selected" : ""}`}
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "flex-start",
+                      padding: 14,
+                      border: `2px solid ${paymentMethod === "razorpay" ? "#603813" : "#e6dfd1"}`,
+                      borderRadius: 10,
+                      background: "#fff",
+                      cursor: "pointer",
+                      transition: "border-color .15s",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="razorpay"
+                      checked={paymentMethod === "razorpay"}
+                      onChange={() => setPaymentMethod("razorpay")}
+                      style={{ marginTop: 4 }}
                     />
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://img.icons8.com/color/48/mastercard-logo.png"
-                      height="24"
-                      alt="MasterCard"
-                    />
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://img.icons8.com/color/48/000000/rupay.png"
-                      height="24"
-                      alt="RuPay"
-                    />
-                  </div>
-                  <p className="small text-muted">
-                    After clicking &quot;Pay now&quot;, you will be redirected
-                    to the Payment Gateway to complete your purchase securely.
-                  </p>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>
+                        Pay Online (UPI · Cards · NetBanking · Wallets)
+                      </div>
+                      <small className="text-muted">
+                        Secure payment via Razorpay. Includes GPay, PhonePe,
+                        Paytm, BHIM, Visa, MasterCard, RuPay.
+                      </small>
+                      <div className="d-flex gap-2 mt-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="https://img.icons8.com/color/48/visa.png"
+                          height="22"
+                          alt="Visa"
+                        />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="https://img.icons8.com/color/48/mastercard-logo.png"
+                          height="22"
+                          alt="MasterCard"
+                        />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="https://img.icons8.com/color/48/000000/rupay.png"
+                          height="22"
+                          alt="RuPay"
+                        />
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* --- COD --- */}
+                  {settings.codEnabled ? (
+                    <label
+                      className={`payment-method-card${paymentMethod === "cod" ? " is-selected" : ""}`}
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        padding: 14,
+                        border: `2px solid ${paymentMethod === "cod" ? "#603813" : "#e6dfd1"}`,
+                        borderRadius: 10,
+                        background: codAvailable ? "#fff" : "#f6f1e7",
+                        cursor: codAvailable ? "pointer" : "not-allowed",
+                        opacity: codAvailable ? 1 : 0.55,
+                        transition: "border-color .15s",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={paymentMethod === "cod"}
+                        disabled={!codAvailable}
+                        onChange={() => setPaymentMethod("cod")}
+                        style={{ marginTop: 4 }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600 }}>
+                          Cash on Delivery (COD)
+                        </div>
+                        <small className="text-muted">
+                          {codAvailable
+                            ? `Pay with cash when your parcel arrives.${settings.codFee > 0 ? ` Extra ₹${formatINR(settings.codFee)} handling fee applies.` : ""}`
+                            : pincodeStatus === "valid"
+                              ? "Cash on Delivery is not available for your PIN code."
+                              : "Enter a valid PIN code to check COD availability."}
+                        </small>
+                      </div>
+                    </label>
+                  ) : null}
                 </div>
 
                 <button
                   type="submit"
                   className="pay-button"
-                  disabled={submitting || empty || !scriptReady}
+                  disabled={payDisabled}
                 >
-                  {submitting
-                    ? "Processing…"
-                    : empty
-                      ? "Your cart is empty"
-                      : !scriptReady
-                        ? "Loading payment…"
-                        : "Pay now"}
+                  {payButtonLabel}
                 </button>
               </form>
             </div>
@@ -655,22 +916,146 @@ export default function CheckoutClient({
 
               {!empty && (
                 <>
+                  {/* ============== Coupon block ============== */}
+                  <div
+                    className="coupon-block"
+                    style={{
+                      borderTop: "1px solid rgba(96,56,19,0.12)",
+                      paddingTop: 14,
+                      marginTop: 8,
+                    }}
+                  >
+                    {appliedCoupon ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          background: "#fdf7ef",
+                          border: "1px solid rgba(96,56,19,0.18)",
+                          borderRadius: 10,
+                          padding: "10px 12px",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600 }}>
+                            ✓ {appliedCoupon.code}
+                          </div>
+                          <small className="text-muted">
+                            {couponMessage ?? "Coupon applied"}
+                          </small>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeCoupon}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#a04141",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <label
+                          className="form-label"
+                          style={{ fontWeight: 600, marginBottom: 6 }}
+                        >
+                          Have a coupon?
+                        </label>
+                        <div className="d-flex gap-2">
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Enter code (e.g. DIWALI20)"
+                            value={couponInput}
+                            onChange={(e) =>
+                              setCouponInput(
+                                e.target.value
+                                  .toUpperCase()
+                                  .replace(/[^A-Z0-9_-]/g, "")
+                                  .slice(0, 32),
+                              )
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                void applyCoupon();
+                              }
+                            }}
+                            style={{ textTransform: "uppercase" }}
+                          />
+                          <button
+                            type="button"
+                            className="donate-btn"
+                            disabled={couponBusy || empty}
+                            onClick={() => void applyCoupon()}
+                            style={{ whiteSpace: "nowrap" }}
+                          >
+                            {couponBusy ? "Applying…" : "Apply"}
+                          </button>
+                        </div>
+                        {couponError ? (
+                          <small
+                            className="text-danger d-block"
+                            style={{ marginTop: 6 }}
+                          >
+                            {couponError}
+                          </small>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+
+                  {/* ============== Totals ============== */}
                   <hr />
                   <div className="totlal-amountdata">
                     <span>Subtotal</span>
-                    <strong>₹{formatINR(subtotal)}</strong>
+                    <strong>₹{formatINR(breakdown.subtotal)}</strong>
                   </div>
+
+                  {breakdown.discountAmount > 0 ? (
+                    <div
+                      className="d-flex justify-content-between"
+                      style={{ color: "#2c8b3d" }}
+                    >
+                      <span>
+                        Discount{" "}
+                        {appliedCoupon ? `(${appliedCoupon.code})` : ""}
+                      </span>
+                      <span>− ₹{formatINR(breakdown.discountAmount)}</span>
+                    </div>
+                  ) : null}
+
                   <div className="d-flex justify-content-between">
                     <span>Shipping</span>
-                    <span>—</span>
+                    <span>
+                      {breakdown.shippingFee > 0
+                        ? `₹${formatINR(breakdown.shippingFee)}`
+                        : appliedCoupon?.freeShipping
+                          ? "Free (coupon)"
+                          : "Free"}
+                    </span>
                   </div>
+
+                  {breakdown.codFee > 0 ? (
+                    <div className="d-flex justify-content-between">
+                      <span>COD handling fee</span>
+                      <span>₹{formatINR(breakdown.codFee)}</span>
+                    </div>
+                  ) : null}
+
                   <hr />
                   <div className="allprice-data">
                     <span>
                       <strong>Total</strong>
                     </span>
                     <span>
-                      <strong>₹{formatINR(subtotal)}</strong>
+                      <strong>₹{formatINR(breakdown.total)}</strong>
                     </span>
                   </div>
                 </>

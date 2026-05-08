@@ -2,6 +2,8 @@ import "server-only";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  coupons as couponsTable,
+  couponRedemptions,
   orderItems,
   orders,
   paymentDetails,
@@ -189,8 +191,28 @@ export async function createOrderWithItems(params: {
   shipping: ShippingInput;
   pricedCart: PricedCart;
   razorpayOrderId: string | null;
-  paymentMethod?: string | null;
+  paymentMethod: "razorpay" | "cod";
+  /** Optional applied coupon — when set we'll increment used_count and
+   *  insert a coupon_redemptions row INSIDE the same transaction so it
+   *  rolls back with the order on failure. */
+  appliedCoupon: {
+    couponId: number;
+    code: string;
+    discountAmount: number;
+    freeShipping: boolean;
+  } | null;
+  /** Computed shipping fee (rupees, after free-shipping coupon if any). */
+  shippingFee: number;
+  /** Extra COD handling fee (0 for prepaid orders). */
+  codFee: number;
 }): Promise<OrderRow> {
+  const subtotal = params.pricedCart.subtotal;
+  const discount = params.appliedCoupon?.discountAmount ?? 0;
+  const shipping = params.shippingFee;
+  const cod = params.codFee;
+  const grandTotal =
+    Math.round((subtotal - discount + shipping + cod) * 100) / 100;
+
   return db.transaction(async (tx) => {
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random()
       .toString(36)
@@ -202,7 +224,14 @@ export async function createOrderWithItems(params: {
       guest_id: params.guestId,
       order_number: orderNumber,
       status: "pending",
-      grand_total: params.pricedCart.subtotal.toFixed(2),
+      grand_total: grandTotal.toFixed(2),
+      subtotal: subtotal.toFixed(2),
+      discount_amount: discount.toFixed(2),
+      shipping_fee: shipping.toFixed(2),
+      cod_fee: cod.toFixed(2),
+      payment_method: params.paymentMethod,
+      coupon_id: params.appliedCoupon?.couponId ?? null,
+      coupon_code: params.appliedCoupon?.code ?? null,
       quantity: params.pricedCart.totalQuantity,
       payment_status: "pending",
     });
@@ -244,13 +273,55 @@ export async function createOrderWithItems(params: {
 
     await tx.insert(paymentDetails).values({
       order_id: orderId,
-      payment_method: params.paymentMethod ?? "razorpay",
-      amount: params.pricedCart.subtotal.toFixed(2),
+      payment_method: params.paymentMethod,
+      amount: grandTotal.toFixed(2),
       razorpay_order_id: params.razorpayOrderId,
       razorpay_payment_id: null,
       status: "created",
       payment_details: null,
     });
+
+    // Atomically bump coupons.used_count & insert redemption row. Re-checks
+    // usage_limit to guard against the race where two carts redeem the
+    // last seat at the same time.
+    if (params.appliedCoupon) {
+      const [couponRow] = await tx
+        .select({
+          id: couponsTable.id,
+          usage_limit: couponsTable.usage_limit,
+          used_count: couponsTable.used_count,
+        })
+        .from(couponsTable)
+        .where(eq(couponsTable.id, params.appliedCoupon.couponId))
+        .for("update");
+
+      if (!couponRow) {
+        throw new Error("Coupon disappeared between apply and checkout.");
+      }
+      if (
+        couponRow.usage_limit !== null &&
+        couponRow.used_count >= couponRow.usage_limit
+      ) {
+        throw new Error("Coupon usage limit was just reached.");
+      }
+
+      await tx
+        .update(couponsTable)
+        .set({
+          used_count: sql`${couponsTable.used_count} + 1`,
+          updated_at: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(eq(couponsTable.id, params.appliedCoupon.couponId));
+
+      await tx.insert(couponRedemptions).values({
+        coupon_id: params.appliedCoupon.couponId,
+        order_id: orderId,
+        user_id: params.userId ?? null,
+        guest_id: params.guestId ?? null,
+        discount_amount: params.appliedCoupon.discountAmount.toFixed(2),
+        created_at: sql`CURRENT_TIMESTAMP`,
+      });
+    }
 
     const [created] = await tx
       .select()
@@ -330,7 +401,15 @@ export type OrderNotificationData = {
   customerName: string;
   customerEmail: string;
   customerPhone: string | null;
+  /** Final total the customer has to pay (= subtotal − discount + shipping + cod fee). */
   totalAmount: number;
+  /** Cart subtotal (pre-discount). */
+  subtotal: number;
+  discountAmount: number;
+  shippingFee: number;
+  codFee: number;
+  paymentMethod: "razorpay" | "cod" | string;
+  couponCode: string | null;
   items: Array<{
     name: string;
     quantity: number;
@@ -381,6 +460,12 @@ export async function getOrderForNotification(
     customerEmail: shipping?.email ?? "",
     customerPhone: shipping?.phone ?? null,
     totalAmount: Number(order.grand_total ?? 0),
+    subtotal: Number(order.subtotal ?? order.grand_total ?? 0),
+    discountAmount: Number(order.discount_amount ?? 0),
+    shippingFee: Number(order.shipping_fee ?? 0),
+    codFee: Number(order.cod_fee ?? 0),
+    paymentMethod: order.payment_method ?? "razorpay",
+    couponCode: order.coupon_code ?? null,
     items: itemRows.map((it) => ({
       name: it.product_name ?? "Product",
       quantity: Number(it.quantity ?? 1),
@@ -402,6 +487,77 @@ export async function getOrderForNotification(
   };
 }
 
+/**
+ * Persist Shiprocket bookkeeping for an order's shipment row.
+ * Used right after `createShiprocketOrder()` succeeds.
+ */
+export async function setShiprocketDetails(params: {
+  orderId: number;
+  shiprocketOrderId: string | null;
+  shiprocketShipmentId: string | null;
+  awbCode?: string | null;
+  courierCompanyId?: string | null;
+  trackingUrl?: string | null;
+}): Promise<void> {
+  await db
+    .update(shippingDetails)
+    .set({
+      shiprocket_order_id: params.shiprocketOrderId,
+      shiprocket_shipment_id: params.shiprocketShipmentId,
+      ...(params.awbCode !== undefined ? { awb_code: params.awbCode } : {}),
+      ...(params.courierCompanyId !== undefined
+        ? { courier_company_id: params.courierCompanyId }
+        : {}),
+      ...(params.trackingUrl !== undefined
+        ? { tracking_url: params.trackingUrl }
+        : {}),
+      updated_at: sql`CURRENT_TIMESTAMP`,
+    })
+    .where(eq(shippingDetails.order_id, params.orderId));
+}
+
+/**
+ * Mark a COD order as paid (used by admin "Mark as Paid" button when the
+ * courier confirms cash collection). Mirrors the post-payment side-effects
+ * of `markOrderPaid` but takes no Razorpay fields.
+ */
+export async function markCodOrderPaid(orderId: number): Promise<{
+  email: string | null;
+  wasAlreadyPaid: boolean;
+} | null> {
+  return db.transaction(async (tx) => {
+    const [order] = await tx
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+    if (!order) return null;
+
+    const wasAlreadyPaid = order.payment_status === "paid";
+
+    await tx
+      .update(orders)
+      .set({ status: "processing", payment_status: "paid" })
+      .where(eq(orders.id, orderId));
+
+    await tx
+      .update(paymentDetails)
+      .set({ status: "completed", updated_at: sql`CURRENT_TIMESTAMP` })
+      .where(eq(paymentDetails.order_id, orderId));
+
+    const [shipping] = await tx
+      .select({ email: shippingDetails.email })
+      .from(shippingDetails)
+      .where(eq(shippingDetails.order_id, orderId))
+      .limit(1);
+
+    return {
+      email: shipping?.email ?? null,
+      wasAlreadyPaid,
+    };
+  });
+}
+
 /* ============================================================
    READS
    ============================================================ */
@@ -412,6 +568,12 @@ export type OrderSummary = {
   status: string;
   paymentStatus: string;
   grandTotal: number;
+  subtotal: number;
+  discountAmount: number;
+  shippingFee: number;
+  codFee: number;
+  paymentMethod: string;
+  couponCode: string | null;
   quantity: number;
   createdAt: Date | null;
   shipping: {
@@ -424,6 +586,10 @@ export type OrderSummary = {
     city: string | null;
     state: string | null;
     pincode: string | null;
+    awbCode: string | null;
+    courierCompanyId: string | null;
+    trackingUrl: string | null;
+    trackingStatus: string | null;
   } | null;
   items: Array<{
     productId: number | null;
@@ -489,6 +655,12 @@ export async function getOrderByRazorpayId(params: {
     status: order.status,
     paymentStatus: order.payment_status,
     grandTotal: Number(order.grand_total ?? 0),
+    subtotal: Number(order.subtotal ?? order.grand_total ?? 0),
+    discountAmount: Number(order.discount_amount ?? 0),
+    shippingFee: Number(order.shipping_fee ?? 0),
+    codFee: Number(order.cod_fee ?? 0),
+    paymentMethod: order.payment_method ?? "razorpay",
+    couponCode: order.coupon_code ?? null,
     quantity: Number(order.quantity ?? 0),
     createdAt: order.created_at,
     shipping: shipping
@@ -502,6 +674,87 @@ export async function getOrderByRazorpayId(params: {
           city: shipping.city,
           state: shipping.state,
           pincode: shipping.pincode,
+          awbCode: shipping.awb_code ?? null,
+          courierCompanyId: shipping.courier_company_id ?? null,
+          trackingUrl: shipping.tracking_url ?? null,
+          trackingStatus: shipping.tracking_status ?? null,
+        }
+      : null,
+    items: itemRows.map((it) => ({
+      productId: it.product_id,
+      productName: it.product_name,
+      productSize: it.product_size,
+      quantity: it.quantity,
+      price: Number(it.price ?? 0),
+      variation: it.variation_option,
+      giftWrap: it.gift_wrap,
+    })),
+  };
+}
+
+/**
+ * Look up an order by its public `order_number`, scoped to a guest cookie
+ * or user id. Used by the COD success page (no Razorpay id available).
+ */
+export async function getOrderByOrderNumber(params: {
+  orderNumber: string;
+  guestId: string | null;
+  userId: number | null;
+}): Promise<OrderSummary | null> {
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.order_number, params.orderNumber))
+    .limit(1);
+  if (!order) return null;
+
+  const ownerOk =
+    (params.userId != null && order.user_id === params.userId) ||
+    (params.guestId != null && order.guest_id === params.guestId);
+  if (!ownerOk) return null;
+
+  const [shippingRows, itemRows] = await Promise.all([
+    db
+      .select()
+      .from(shippingDetails)
+      .where(eq(shippingDetails.order_id, order.id))
+      .limit(1),
+    db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.order_id, order.id)),
+  ]);
+  const shipping = shippingRows[0] ?? null;
+
+  return {
+    id: order.id,
+    orderNumber: order.order_number,
+    status: order.status,
+    paymentStatus: order.payment_status,
+    grandTotal: Number(order.grand_total ?? 0),
+    subtotal: Number(order.subtotal ?? order.grand_total ?? 0),
+    discountAmount: Number(order.discount_amount ?? 0),
+    shippingFee: Number(order.shipping_fee ?? 0),
+    codFee: Number(order.cod_fee ?? 0),
+    paymentMethod: order.payment_method ?? "razorpay",
+    couponCode: order.coupon_code ?? null,
+    quantity: Number(order.quantity ?? 0),
+    createdAt: order.created_at,
+    shipping: shipping
+      ? {
+          firstName: shipping.first_name,
+          lastName: shipping.last_name,
+          email: shipping.email,
+          phone: shipping.phone,
+          address: shipping.address,
+          apartment: shipping.apartment,
+          city: shipping.city,
+          state: shipping.state,
+          pincode: shipping.pincode,
+          awbCode: shipping.awb_code ?? null,
+          courierCompanyId: shipping.courier_company_id ?? null,
+          trackingUrl: shipping.tracking_url ?? null,
+          trackingStatus: shipping.tracking_status ?? null,
         }
       : null,
     items: itemRows.map((it) => ({
@@ -667,6 +920,12 @@ export async function getUserOrderByNumber(params: {
     status: order.status,
     paymentStatus: order.payment_status,
     grandTotal: Number(order.grand_total ?? 0),
+    subtotal: Number(order.subtotal ?? order.grand_total ?? 0),
+    discountAmount: Number(order.discount_amount ?? 0),
+    shippingFee: Number(order.shipping_fee ?? 0),
+    codFee: Number(order.cod_fee ?? 0),
+    paymentMethod: order.payment_method ?? "razorpay",
+    couponCode: order.coupon_code ?? null,
     quantity: Number(order.quantity ?? 0),
     createdAt: order.created_at,
     shipping: shipping
@@ -680,6 +939,10 @@ export async function getUserOrderByNumber(params: {
           city: shipping.city,
           state: shipping.state,
           pincode: shipping.pincode,
+          awbCode: shipping.awb_code ?? null,
+          courierCompanyId: shipping.courier_company_id ?? null,
+          trackingUrl: shipping.tracking_url ?? null,
+          trackingStatus: shipping.tracking_status ?? null,
         }
       : null,
     items: itemRows.map((it) => ({

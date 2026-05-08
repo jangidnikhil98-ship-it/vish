@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  couponRedemptions,
   orderItems,
   orders,
   paymentDetails,
@@ -20,6 +21,7 @@ export interface AdminOrderRow {
   status: string;
   payment_status: string;
   grand_total: string | null;
+  payment_method: string;
   buyer_name: string | null;
   created_at: Date | null;
 }
@@ -53,6 +55,7 @@ export async function listAdminOrders(params: {
       status: orders.status,
       payment_status: orders.payment_status,
       grand_total: orders.grand_total,
+      payment_method: orders.payment_method,
       first_name: users.first_name,
       last_name: users.last_name,
       created_at: orders.created_at,
@@ -76,6 +79,7 @@ export async function listAdminOrders(params: {
     status: r.status,
     payment_status: r.payment_status,
     grand_total: r.grand_total,
+    payment_method: r.payment_method ?? "razorpay",
     buyer_name:
       r.first_name || r.last_name
         ? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()
@@ -109,6 +113,12 @@ export interface AdminOrderDetail {
   status: string;
   payment_status: string;
   grand_total: string | null;
+  subtotal: string | null;
+  discount_amount: string | null;
+  shipping_fee: string | null;
+  cod_fee: string | null;
+  payment_method: string;
+  coupon_code: string | null;
   quantity: number | null;
   created_at: Date | null;
   buyer:
@@ -130,6 +140,12 @@ export interface AdminOrderDetail {
     city: string | null;
     state: string | null;
     pincode: string | null;
+    awb_code: string | null;
+    courier_company_id: string | null;
+    shiprocket_order_id: string | null;
+    shiprocket_shipment_id: string | null;
+    tracking_url: string | null;
+    tracking_status: string | null;
   } | null;
   payment: {
     method: string | null;
@@ -151,6 +167,12 @@ export async function getAdminOrderById(
       status: orders.status,
       payment_status: orders.payment_status,
       grand_total: orders.grand_total,
+      subtotal: orders.subtotal,
+      discount_amount: orders.discount_amount,
+      shipping_fee: orders.shipping_fee,
+      cod_fee: orders.cod_fee,
+      payment_method: orders.payment_method,
+      coupon_code: orders.coupon_code,
       quantity: orders.quantity,
       created_at: orders.created_at,
       user_id: orders.user_id,
@@ -187,6 +209,12 @@ export async function getAdminOrderById(
         city: shippingDetails.city,
         state: shippingDetails.state,
         pincode: shippingDetails.pincode,
+        awb_code: shippingDetails.awb_code,
+        courier_company_id: shippingDetails.courier_company_id,
+        shiprocket_order_id: shippingDetails.shiprocket_order_id,
+        shiprocket_shipment_id: shippingDetails.shiprocket_shipment_id,
+        tracking_url: shippingDetails.tracking_url,
+        tracking_status: shippingDetails.tracking_status,
       })
       .from(shippingDetails)
       .where(eq(shippingDetails.order_id, id))
@@ -231,6 +259,12 @@ export async function getAdminOrderById(
     status: order.status,
     payment_status: order.payment_status,
     grand_total: order.grand_total,
+    subtotal: order.subtotal,
+    discount_amount: order.discount_amount,
+    shipping_fee: order.shipping_fee,
+    cod_fee: order.cod_fee,
+    payment_method: order.payment_method ?? "razorpay",
+    coupon_code: order.coupon_code,
     quantity: order.quantity,
     created_at: order.created_at,
     buyer,
@@ -259,5 +293,6 @@ export async function deleteAdminOrder(id: number): Promise<void> {
   await db.delete(orderItems).where(eq(orderItems.order_id, id));
   await db.delete(shippingDetails).where(eq(shippingDetails.order_id, id));
   await db.delete(paymentDetails).where(eq(paymentDetails.order_id, id));
+  await db.delete(couponRedemptions).where(eq(couponRedemptions.order_id, id));
   await db.delete(orders).where(eq(orders.id, id));
 }

@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/shipping/track/[awb]/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"E:\\vish-main\\vish-main\\app\\api\\shipping\\track\\[awb]\\route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

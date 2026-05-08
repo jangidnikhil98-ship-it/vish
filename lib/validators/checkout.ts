@@ -47,9 +47,37 @@ export type ShippingInput = z.infer<typeof shippingSchema>;
 export const createOrderSchema = z.object({
   shipping: shippingSchema,
   items: z.array(cartItemSchema).min(1, "Cart is empty"),
+  /** Optional coupon code typed by the user. Uppercased server-side. */
+  couponCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .max(64)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.length > 0 ? v : undefined)),
+  /** Payment method chosen at checkout. Defaults to "razorpay" so old
+   *  clients (that don't send the field) keep working. */
+  paymentMethod: z.enum(["razorpay", "cod"]).default("razorpay"),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+/** Body for POST /api/checkout/apply-coupon — used by the cart UI to
+ *  validate a code BEFORE the user clicks "Pay now". */
+export const applyCouponSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .min(2)
+    .max(64),
+  items: z.array(cartItemSchema).min(1, "Cart is empty"),
+  /** "razorpay" | "cod" — affects whether free_shipping coupons apply. */
+  paymentMethod: z.enum(["razorpay", "cod"]).default("razorpay"),
+});
+
+export type ApplyCouponInput = z.infer<typeof applyCouponSchema>;
 
 export const verifyPaymentSchema = z.object({
   razorpay_order_id: z.string().trim().min(1),

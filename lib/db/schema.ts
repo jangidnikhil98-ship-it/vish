@@ -312,6 +312,34 @@ export const orders = mysqlTable(
     payment_status: mysqlEnum("payment_status", ["pending", "paid", "failed"])
       .default("pending")
       .notNull(),
+    /* ---------- coupon + COD additions ---------- */
+    /** Cart total before any discount or fee. Always equals
+     *  sum(order_items.price * quantity). */
+    subtotal: decimal("subtotal", { precision: 10, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    /** Coupon discount applied (positive number; subtracted from subtotal). */
+    discount_amount: decimal("discount_amount", { precision: 10, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    /** Shiprocket-quoted (or rule-based) shipping fee. */
+    shipping_fee: decimal("shipping_fee", { precision: 10, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    /** Extra COD handling charge (admin-configurable). 0 for prepaid. */
+    cod_fee: decimal("cod_fee", { precision: 10, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    /** "razorpay" | "cod". Mirrors payment_details.payment_method but kept
+     *  here for fast filtering on the orders list. */
+    payment_method: varchar("payment_method", { length: 32 })
+      .default("razorpay")
+      .notNull(),
+    /** FK-by-convention to coupons.id; null = no coupon used. */
+    coupon_id: bigint("coupon_id", { mode: "number", unsigned: true }),
+    /** Snapshot of the coupon code at the time of redemption (kept even
+     *  if the coupon row is later deleted). */
+    coupon_code: varchar("coupon_code", { length: 64 }),
     created_at: timestamp("created_at"),
     updated_at: timestamp("updated_at"),
   },
@@ -319,6 +347,8 @@ export const orders = mysqlTable(
     uniqueIndex("orders_order_number_unique").on(t.order_number),
     index("idx_orders_user").on(t.user_id),
     index("idx_orders_user_created").on(t.user_id, t.created_at),
+    index("idx_orders_payment_method").on(t.payment_method),
+    index("idx_orders_coupon").on(t.coupon_id),
   ],
 );
 
@@ -377,12 +407,29 @@ export const shippingDetails = mysqlTable(
     state: varchar("state", { length: 255 }),
     pincode: varchar("pincode", { length: 6 }).notNull(),
     is_save: tinyint("is_save", { unsigned: true }).default(0).notNull(),
+    /* ---------- Shiprocket additions ---------- */
+    /** Shiprocket numeric "order_id" (different from our orders.id). */
+    shiprocket_order_id: varchar("shiprocket_order_id", { length: 64 }),
+    /** Shiprocket numeric "shipment_id" — needed to assign AWB / cancel. */
+    shiprocket_shipment_id: varchar("shiprocket_shipment_id", { length: 64 }),
+    /** Air Waybill code = the courier tracking number once assigned. */
+    awb_code: varchar("awb_code", { length: 64 }),
+    /** Numeric Shiprocket courier id (e.g. Delhivery=10). */
+    courier_company_id: varchar("courier_company_id", { length: 32 }),
+    /** Public courier tracking URL (or our /track/[awb] page). */
+    tracking_url: varchar("tracking_url", { length: 500 }),
+    /** Last status string we got from Shiprocket (e.g. "PICKED UP",
+     *  "IN TRANSIT", "DELIVERED", "RTO IN TRANSIT"). */
+    tracking_status: varchar("tracking_status", { length: 64 }),
+    /** ISO date string of the most recent tracking update. */
+    tracking_updated_at: timestamp("tracking_updated_at"),
     created_at: timestamp("created_at"),
     updated_at: timestamp("updated_at"),
   },
   (t) => [
     index("idx_shipping_order").on(t.order_id),
     index("idx_shipping_user").on(t.user_id),
+    index("idx_shipping_awb").on(t.awb_code),
   ],
 );
 
@@ -536,6 +583,101 @@ export const searchHistory = mysqlTable(
 );
 
 /* ============================================================
+   COUPONS
+   ============================================================ */
+export const coupons = mysqlTable(
+  "coupons",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .autoincrement()
+      .primaryKey(),
+    /** Case-insensitive (we always uppercase before lookup). Unique. */
+    code: varchar("code", { length: 64 }).notNull(),
+    /** "percent" — % off subtotal (uses `value` as 0–100).
+     *  "free_shipping" — sets shipping_fee to 0 (ignores `value`). */
+    type: mysqlEnum("type", ["percent", "free_shipping"])
+      .default("percent")
+      .notNull(),
+    /** For "percent": discount %. Ignored for "free_shipping". */
+    value: decimal("value", { precision: 10, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    /** Cart subtotal must be >= this to apply (0 = no minimum). */
+    min_order_amount: decimal("min_order_amount", { precision: 10, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    /** Cap for "percent" coupons (e.g. 10% off up to ₹500). null = no cap. */
+    max_discount_amount: decimal("max_discount_amount", {
+      precision: 10,
+      scale: 2,
+    }),
+    /** Total redemptions allowed across all users. null = unlimited. */
+    usage_limit: int("usage_limit", { unsigned: true }),
+    /** How many times this coupon has been redeemed so far. */
+    used_count: int("used_count", { unsigned: true }).default(0).notNull(),
+    /** Optional public description shown in admin (e.g. "Diwali sale"). */
+    description: varchar("description", { length: 255 }),
+    valid_from: timestamp("valid_from"),
+    valid_until: timestamp("valid_until"),
+    is_active: tinyint("is_active", { unsigned: true }).default(1).notNull(),
+    created_at: timestamp("created_at"),
+    updated_at: timestamp("updated_at"),
+  },
+  (t) => [
+    uniqueIndex("coupons_code_unique").on(t.code),
+    index("idx_coupons_active").on(t.is_active),
+  ],
+);
+
+/** One row per successful coupon redemption — used to enforce per-user
+ *  usage limits and to show a redemption history in the admin. */
+export const couponRedemptions = mysqlTable(
+  "coupon_redemptions",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .autoincrement()
+      .primaryKey(),
+    coupon_id: bigint("coupon_id", {
+      mode: "number",
+      unsigned: true,
+    }).notNull(),
+    order_id: bigint("order_id", {
+      mode: "number",
+      unsigned: true,
+    }).notNull(),
+    user_id: bigint("user_id", { mode: "number", unsigned: true }),
+    guest_id: varchar("guest_id", { length: 255 }),
+    discount_amount: decimal("discount_amount", { precision: 10, scale: 2 })
+      .default("0.00")
+      .notNull(),
+    created_at: timestamp("created_at"),
+  },
+  (t) => [
+    index("idx_redemptions_coupon").on(t.coupon_id),
+    index("idx_redemptions_order").on(t.order_id),
+    index("idx_redemptions_user").on(t.user_id),
+  ],
+);
+
+/* ============================================================
+   SITE SETTINGS (key/value store — COD fee, Shiprocket pickup, …)
+   ============================================================ */
+export const siteSettings = mysqlTable(
+  "site_settings",
+  {
+    id: bigint("id", { mode: "number", unsigned: true })
+      .autoincrement()
+      .primaryKey(),
+    key_name: varchar("key_name", { length: 100 }).notNull(),
+    value: text("value"),
+    description: varchar("description", { length: 255 }),
+    created_at: timestamp("created_at"),
+    updated_at: timestamp("updated_at"),
+  },
+  (t) => [uniqueIndex("site_settings_key_unique").on(t.key_name)],
+);
+
+/* ============================================================
    EMAIL TEMPLATE
    ============================================================ */
 export const emailTemplate = mysqlTable("email_template", {
@@ -573,3 +715,6 @@ export type TransactionHistory = typeof transactionHistories.$inferSelect;
 export type Favourite = typeof favouritesProducts.$inferSelect;
 export type SearchHistoryRow = typeof searchHistory.$inferSelect;
 export type EmailTemplateRow = typeof emailTemplate.$inferSelect;
+export type Coupon = typeof coupons.$inferSelect;
+export type CouponRedemption = typeof couponRedemptions.$inferSelect;
+export type SiteSetting = typeof siteSettings.$inferSelect;

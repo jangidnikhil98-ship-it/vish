@@ -21,11 +21,10 @@ interface Props {
   }>;
 }
 
-function inrFromPaise(value: string | null): string {
-  // Laravel was storing grand_total in paise (× 100). Mirror that conversion.
+function inr(value: string | null): string {
   const n = Number(value ?? 0);
   if (!Number.isFinite(n)) return "0.00";
-  return (n / 100).toLocaleString("en-IN", {
+  return n.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -70,6 +69,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               <th>Order #</th>
               <th>Buyer</th>
               <th>Total (₹)</th>
+              <th>Method</th>
               <th>Order Status</th>
               <th>Payment</th>
               <th>Placed</th>
@@ -79,7 +79,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           <tbody>
             {result.rows.length === 0 ? (
               <tr className="border-bottom-secondary">
-                <td colSpan={8} style={{ textAlign: "center" }}>
+                <td colSpan={9} style={{ textAlign: "center" }}>
                   No Records Found
                 </td>
               </tr>
@@ -93,7 +93,19 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                     <strong>{o.order_number}</strong>
                   </td>
                   <td>{o.buyer_name ?? "Guest"}</td>
-                  <td>₹ {inrFromPaise(o.grand_total)}</td>
+                  <td>₹ {inr(o.grand_total)}</td>
+                  <td>
+                    <span
+                      className={
+                        "badge rounded-pill p-2 " +
+                        (o.payment_method === "cod"
+                          ? "badge-warning"
+                          : "badge-success")
+                      }
+                    >
+                      {o.payment_method === "cod" ? "COD" : "ONLINE"}
+                    </span>
+                  </td>
                   <td>
                     <span
                       className={

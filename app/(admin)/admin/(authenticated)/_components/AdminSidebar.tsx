@@ -173,6 +173,22 @@ export default function AdminSidebar() {
                 </Link>
               </li>
 
+              {/* Coupons */}
+              <li className="sidebar-list">
+                <Link className={cls("/admin/coupons")} href="/admin/coupons">
+                  <svg className="stroke-icon">
+                    <use href="/backend/svg/icon-sprite.svg#stroke-tag" />
+                  </svg>
+                  <svg className="fill-icon">
+                    <use href="/backend/svg/icon-sprite.svg#fill-tag" />
+                  </svg>
+                  <span>Coupons</span>
+                  <div className="according-menu">
+                    <i className="fa fa-angle-right" />
+                  </div>
+                </Link>
+              </li>
+
               {/* Blogs */}
               <li className="sidebar-list">
                 <Link className={cls("/admin/blogs")} href="/admin/blogs">

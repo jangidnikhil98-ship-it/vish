@@ -10,6 +10,7 @@
     "lint": "eslint",
     "db:test": "node scripts/test-db.mjs",
     "db:add-role": "node scripts/add-role-column.mjs",
+    "db:migrate-coupons-cod": "node scripts/migrate-coupons-cod.mjs",
     "db:seed-admin": "node scripts/seed-admin.mjs",
     "db:pull": "drizzle-kit pull",
     "db:generate": "drizzle-kit generate",

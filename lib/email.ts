@@ -239,6 +239,16 @@ export type OrderConfirmationPayload = {
     phone?: string | null;
   } | null;
   paymentId?: string | null;
+  /** "razorpay" (default — already paid) or "cod" (collect on delivery). */
+  paymentMethod?: "razorpay" | "cod";
+  /** Optional price breakdown shown above the grand total. */
+  breakdown?: {
+    subtotal: number;
+    discountAmount: number;
+    couponCode?: string | null;
+    shippingFee: number;
+    codFee: number;
+  };
 };
 
 export async function sendOrderConfirmation(
@@ -282,22 +292,78 @@ export async function sendOrderConfirmation(
       </div>`
     : "";
 
+  const isCod = payload.paymentMethod === "cod";
+
+  /* ------ Optional breakdown rows above the grand total ------ */
+  const breakdownRows = payload.breakdown
+    ? `
+      <tr>
+        <td colspan="2" align="right" style="padding:6px 12px;font-size:13px;color:#6b5a45;">Subtotal</td>
+        <td align="right" style="padding:6px 12px;font-size:13px;">₹${formatINR(payload.breakdown.subtotal)}</td>
+      </tr>
+      ${
+        payload.breakdown.discountAmount > 0
+          ? `<tr>
+              <td colspan="2" align="right" style="padding:6px 12px;font-size:13px;color:#2c8b3d;">
+                Discount${payload.breakdown.couponCode ? ` (${escapeHtml(payload.breakdown.couponCode)})` : ""}
+              </td>
+              <td align="right" style="padding:6px 12px;font-size:13px;color:#2c8b3d;">
+                − ₹${formatINR(payload.breakdown.discountAmount)}
+              </td>
+            </tr>`
+          : ""
+      }
+      ${
+        payload.breakdown.shippingFee > 0
+          ? `<tr>
+              <td colspan="2" align="right" style="padding:6px 12px;font-size:13px;color:#6b5a45;">Shipping</td>
+              <td align="right" style="padding:6px 12px;font-size:13px;">₹${formatINR(payload.breakdown.shippingFee)}</td>
+            </tr>`
+          : ""
+      }
+      ${
+        payload.breakdown.codFee > 0
+          ? `<tr>
+              <td colspan="2" align="right" style="padding:6px 12px;font-size:13px;color:#6b5a45;">COD handling fee</td>
+              <td align="right" style="padding:6px 12px;font-size:13px;">₹${formatINR(payload.breakdown.codFee)}</td>
+            </tr>`
+          : ""
+      }
+    `
+    : "";
+
+  const codCallout = isCod
+    ? `
+      <div style="background:#fff7e6;border:1px solid #f0c97c;border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.6;margin:16px 0;color:#7a4f00;">
+        <strong>💵 Cash on Delivery</strong><br />
+        Please keep <strong>₹${formatINR(payload.totalAmount)}</strong> ready in cash for the courier when your parcel arrives.
+      </div>`
+    : "";
+
   const html = layout({
-    preheader: `Order ${payload.orderNumber} confirmed — total ₹${formatINR(payload.totalAmount)}`,
-    title: "Thank you — your order is confirmed!",
+    preheader: isCod
+      ? `Order ${payload.orderNumber} placed — pay ₹${formatINR(payload.totalAmount)} on delivery`
+      : `Order ${payload.orderNumber} confirmed — total ₹${formatINR(payload.totalAmount)}`,
+    title: isCod
+      ? "Order placed — pay on delivery"
+      : "Thank you — your order is confirmed!",
     body: `
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">
         Hi ${escapeHtml(payload.customerName)},
       </p>
       <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">
-        We've received your order and will start crafting it with love.
-        Here are the details:
+        ${isCod
+          ? "Thanks for your order! We'll start crafting it with love and ship it out soon. Pay in cash when our courier delivers it."
+          : "We've received your order and will start crafting it with love. Here are the details:"}
       </p>
 
       <div style="background:${BRAND_SOFT_BG};border:1px solid ${BRAND_BORDER};border-radius:10px;padding:14px 16px;font-size:14px;margin-bottom:16px;">
         <div><strong>Order number:</strong> ${escapeHtml(payload.orderNumber)}</div>
+        <div><strong>Payment:</strong> ${isCod ? "Cash on Delivery" : "Paid online (Razorpay)"}</div>
         ${payload.paymentId ? `<div><strong>Payment ID:</strong> ${escapeHtml(payload.paymentId)}</div>` : ""}
       </div>
+
+      ${codCallout}
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
         style="border-collapse:collapse;border:1px solid ${BRAND_BORDER};border-radius:10px;overflow:hidden;">
@@ -310,9 +376,10 @@ export async function sendOrderConfirmation(
         </thead>
         <tbody>${itemsHtml}</tbody>
         <tfoot>
+          ${breakdownRows}
           <tr>
             <td colspan="2" align="right" style="padding:14px 12px;font-size:15px;border-top:2px solid ${BRAND_BORDER};">
-              <strong>Grand total</strong>
+              <strong>${isCod ? "Amount to pay on delivery" : "Grand total"}</strong>
             </td>
             <td align="right" style="padding:14px 12px;font-size:15px;border-top:2px solid ${BRAND_BORDER};">
               <strong>₹${formatINR(payload.totalAmount)}</strong>
@@ -333,7 +400,9 @@ export async function sendOrderConfirmation(
 
   await sendMail({
     to: payload.to,
-    subject: `Order Confirmed — ${payload.orderNumber}`,
+    subject: isCod
+      ? `Order Placed (COD) — ${payload.orderNumber}`
+      : `Order Confirmed — ${payload.orderNumber}`,
     html,
   });
 }
@@ -352,6 +421,7 @@ export type AdminOrderNotificationPayload = {
   shipping?: OrderConfirmationPayload["shipping"];
   paymentId?: string | null;
   adminUrl?: string | null;
+  paymentMethod?: "razorpay" | "cod";
 };
 
 export async function sendAdminOrderNotification(
@@ -398,17 +468,19 @@ export async function sendAdminOrderNotification(
       </div>`
     : "";
 
+  const isCod = payload.paymentMethod === "cod";
+
   const html = layout({
-    preheader: `🎉 New order ${payload.orderNumber} — ₹${formatINR(payload.totalAmount)} from ${payload.customerName}`,
-    title: `🎉 New order received!`,
+    preheader: `${isCod ? "🛵 New COD" : "🎉 New paid"} order ${payload.orderNumber} — ₹${formatINR(payload.totalAmount)} from ${payload.customerName}`,
+    title: isCod ? "🛵 New COD order received!" : "🎉 New order received!",
     body: `
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">
-        A new paid order just landed. Quick summary:
+        A new ${isCod ? "<strong>Cash on Delivery</strong>" : "paid"} order just landed. Quick summary:
       </p>
 
       <div style="background:${BRAND_SOFT_BG};border:1px solid ${BRAND_BORDER};border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.7;margin-bottom:14px;">
         <div><strong>Order:</strong> ${escapeHtml(payload.orderNumber)}</div>
-        <div><strong>Total:</strong> ₹${formatINR(payload.totalAmount)}</div>
+        <div><strong>Total:</strong> ₹${formatINR(payload.totalAmount)} ${isCod ? "<em>(to collect on delivery)</em>" : ""}</div>
         <div><strong>Customer:</strong> ${escapeHtml(payload.customerName)}</div>
         <div><strong>Email:</strong> ${escapeHtml(payload.customerEmail)}</div>
         ${payload.customerPhone ? `<div><strong>Phone:</strong> ${escapeHtml(payload.customerPhone)}</div>` : ""}
@@ -436,7 +508,9 @@ export async function sendAdminOrderNotification(
 
   await sendMail({
     to: ADMIN_EMAIL,
-    subject: `🎉 New order ${payload.orderNumber} — ₹${formatINR(payload.totalAmount)}`,
+    subject: isCod
+      ? `🛵 New COD order ${payload.orderNumber} — ₹${formatINR(payload.totalAmount)}`
+      : `🎉 New order ${payload.orderNumber} — ₹${formatINR(payload.totalAmount)}`,
     html,
     replyTo: payload.customerEmail,
   });

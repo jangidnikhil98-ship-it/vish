@@ -118,8 +118,42 @@ export default async function DashboardOrderDetailPage({ params }: PageProps) {
             </tbody>
             <tfoot>
               <tr>
+                <td colSpan={5} className="text-end text-muted">
+                  Subtotal
+                </td>
+                <td>₹{formatINR(order.subtotal)}</td>
+              </tr>
+              {order.discountAmount > 0 ? (
+                <tr style={{ color: "#2c8b3d" }}>
+                  <td colSpan={5} className="text-end">
+                    Discount{order.couponCode ? ` (${order.couponCode})` : ""}
+                  </td>
+                  <td>− ₹{formatINR(order.discountAmount)}</td>
+                </tr>
+              ) : null}
+              {order.shippingFee > 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-end text-muted">
+                    Shipping
+                  </td>
+                  <td>₹{formatINR(order.shippingFee)}</td>
+                </tr>
+              ) : null}
+              {order.codFee > 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-end text-muted">
+                    COD handling fee
+                  </td>
+                  <td>₹{formatINR(order.codFee)}</td>
+                </tr>
+              ) : null}
+              <tr>
                 <td colSpan={5} className="text-end">
-                  <strong>Grand total</strong>
+                  <strong>
+                    {order.paymentMethod === "cod"
+                      ? "Pay on delivery"
+                      : "Grand total"}
+                  </strong>
                 </td>
                 <td>
                   <strong>₹{formatINR(order.grandTotal)}</strong>

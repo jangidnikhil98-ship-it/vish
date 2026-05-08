@@ -5,14 +5,15 @@ import { getAdminOrderById } from "@/lib/queries/admin/orders";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { FlashMessage } from "../../_components/FlashMessage";
 import { OrderStatusForm } from "./OrderStatusForm";
+import { MarkPaidButton } from "./MarkPaidButton";
 
 export const metadata: Metadata = { title: "Order Details | Admin" };
 export const dynamic = "force-dynamic";
 
-function inrFromPaise(value: string | null): string {
+function inr(value: string | number | null): string {
   const n = Number(value ?? 0);
   if (!Number.isFinite(n)) return "0.00";
-  return (n / 100).toLocaleString("en-IN", {
+  return n.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -57,6 +58,17 @@ export default async function AdminOrderViewPage({
                   </span>
                   <span className="badge rounded-pill badge-secondary p-2 ms-2">
                     {order.payment_status}
+                  </span>
+                  <span
+                    className={`badge rounded-pill p-2 ms-2 ${
+                      order.payment_method === "cod"
+                        ? "badge-warning"
+                        : "badge-success"
+                    }`}
+                  >
+                    {order.payment_method === "cod"
+                      ? "💵 COD"
+                      : "💳 ONLINE"}
                   </span>
                 </h4>
               </div>
@@ -128,10 +140,41 @@ export default async function AdminOrderViewPage({
                     <tfoot>
                       <tr>
                         <td colSpan={5} style={{ textAlign: "right" }}>
+                          Subtotal
+                        </td>
+                        <td>₹ {inr(order.subtotal)}</td>
+                      </tr>
+                      {Number(order.discount_amount) > 0 ? (
+                        <tr style={{ color: "#2c8b3d" }}>
+                          <td colSpan={5} style={{ textAlign: "right" }}>
+                            Discount
+                            {order.coupon_code ? ` (${order.coupon_code})` : ""}
+                          </td>
+                          <td>− ₹ {inr(order.discount_amount)}</td>
+                        </tr>
+                      ) : null}
+                      {Number(order.shipping_fee) > 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: "right" }}>
+                            Shipping
+                          </td>
+                          <td>₹ {inr(order.shipping_fee)}</td>
+                        </tr>
+                      ) : null}
+                      {Number(order.cod_fee) > 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: "right" }}>
+                            COD handling fee
+                          </td>
+                          <td>₹ {inr(order.cod_fee)}</td>
+                        </tr>
+                      ) : null}
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: "right" }}>
                           <strong>Grand Total</strong>
                         </td>
                         <td>
-                          <strong>₹ {inrFromPaise(order.grand_total)}</strong>
+                          <strong>₹ {inr(order.grand_total)}</strong>
                         </td>
                       </tr>
                     </tfoot>
@@ -153,6 +196,58 @@ export default async function AdminOrderViewPage({
                 />
               </div>
             </div>
+
+            {order.payment_method === "cod" ? (
+              <div className="card">
+                <div className="card-header pb-0">
+                  <h5>Cash on Delivery</h5>
+                </div>
+                <div className="card-body">
+                  <MarkPaidButton
+                    orderId={order.id}
+                    paymentStatus={order.payment_status}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {order.shipping &&
+            (order.shipping.awb_code ||
+              order.shipping.shiprocket_order_id) ? (
+              <div className="card">
+                <div className="card-header pb-0">
+                  <h5>Shipment (Shiprocket)</h5>
+                </div>
+                <div className="card-body">
+                  <ul className="list-unstyled mb-0 small">
+                    {order.shipping.shiprocket_order_id ? (
+                      <li>
+                        <strong>SR Order:</strong>{" "}
+                        <code>{order.shipping.shiprocket_order_id}</code>
+                      </li>
+                    ) : null}
+                    {order.shipping.shiprocket_shipment_id ? (
+                      <li>
+                        <strong>Shipment:</strong>{" "}
+                        <code>{order.shipping.shiprocket_shipment_id}</code>
+                      </li>
+                    ) : null}
+                    {order.shipping.awb_code ? (
+                      <li>
+                        <strong>AWB:</strong>{" "}
+                        <code>{order.shipping.awb_code}</code>
+                      </li>
+                    ) : null}
+                    {order.shipping.tracking_status ? (
+                      <li>
+                        <strong>Status:</strong>{" "}
+                        {order.shipping.tracking_status}
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
+              </div>
+            ) : null}
 
             <div className="card">
               <div className="card-header pb-0">

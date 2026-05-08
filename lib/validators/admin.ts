@@ -56,6 +56,98 @@ export const adminProductUpdateSchema = adminProductCreateSchema.partial({
 export type AdminProductUpdateInput = z.infer<typeof adminProductUpdateSchema>;
 
 /* ============================================================
+   COUPONS
+   ============================================================ */
+/**
+ * "code" rules:
+ *   - 2..32 chars, ASCII letters/digits/underscore/hyphen only.
+ *   - We always uppercase server-side so DIWALI20 == diwali20.
+ */
+const couponCodeRegex = /^[A-Z0-9_-]{2,32}$/;
+
+/** Optional ISO date-time string (YYYY-MM-DDTHH:mm or YYYY-MM-DD). */
+const optionalDateTime = z
+  .string()
+  .trim()
+  .max(25)
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => (v && v.length > 0 ? v : null));
+
+export const adminCouponCreateSchema = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(
+        couponCodeRegex,
+        "Code must be 2–32 characters; letters, digits, underscore or hyphen only",
+      ),
+    type: z.enum(["percent", "free_shipping"]),
+    /** % off (1–100) when type=percent; 0 when type=free_shipping. */
+    value: z.coerce.number().min(0).max(100),
+    min_order_amount: z.coerce.number().min(0).default(0),
+    /** null/blank = no cap. */
+    max_discount_amount: z
+      .union([z.coerce.number().min(0), z.literal(""), z.null()])
+      .optional()
+      .transform((v) =>
+        v === "" || v === null || v === undefined ? null : Number(v),
+      ),
+    /** null/blank = unlimited. */
+    usage_limit: z
+      .union([z.coerce.number().int().min(1), z.literal(""), z.null()])
+      .optional()
+      .transform((v) =>
+        v === "" || v === null || v === undefined ? null : Number(v),
+      ),
+    description: z.string().trim().max(255).optional().or(z.literal("")),
+    valid_from: optionalDateTime,
+    valid_until: optionalDateTime,
+    is_active: z.coerce.number().refine((n) => n === 0 || n === 1, "0 or 1"),
+  })
+  .refine(
+    (d) => (d.type === "percent" ? d.value > 0 && d.value <= 100 : true),
+    {
+      path: ["value"],
+      message: "Percent coupons need a value between 1 and 100.",
+    },
+  )
+  .refine(
+    (d) =>
+      !d.valid_from ||
+      !d.valid_until ||
+      new Date(d.valid_from) <= new Date(d.valid_until),
+    {
+      path: ["valid_until"],
+      message: "Valid until must be after valid from.",
+    },
+  );
+
+export type AdminCouponCreateInput = z.infer<typeof adminCouponCreateSchema>;
+
+/* ============================================================
+   SITE SETTINGS (admin can edit a flat list of key/value pairs)
+   ============================================================ */
+export const adminSettingsKVSchema = z.object({
+  cod_enabled: z.coerce.number().refine((n) => n === 0 || n === 1, "0 or 1"),
+  cod_fee: z.coerce.number().min(0).max(10000),
+  cod_min_order_amount: z.coerce.number().min(0),
+  cod_max_order_amount: z.coerce.number().min(0),
+  default_shipping_fee: z.coerce.number().min(0),
+  shiprocket_pickup_location: z.string().trim().min(1).max(100),
+  shiprocket_default_weight_kg: z.coerce.number().min(0.01).max(50),
+  shiprocket_default_length_cm: z.coerce.number().min(1).max(200),
+  shiprocket_default_breadth_cm: z.coerce.number().min(1).max(200),
+  shiprocket_default_height_cm: z.coerce.number().min(1).max(200),
+  shiprocket_auto_create_order: z
+    .coerce.number()
+    .refine((n) => n === 0 || n === 1, "0 or 1"),
+});
+export type AdminSettingsKVInput = z.infer<typeof adminSettingsKVSchema>;
+
+/* ============================================================
    BLOGS
    ============================================================ */
 export const adminBlogCreateSchema = z.object({

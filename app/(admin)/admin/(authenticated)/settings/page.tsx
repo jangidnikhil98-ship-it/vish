@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { requireAdmin } from "@/lib/admin-auth";
 import { getAdminOwnSettings } from "@/lib/queries/admin/users";
+import { getAllSettings } from "@/lib/queries/admin/settings";
 import { AdminPageHeader } from "../_components/AdminPageHeader";
 import { FlashMessage } from "../_components/FlashMessage";
 import { SettingsClient } from "./SettingsClient";
@@ -16,7 +17,10 @@ interface Props {
 export default async function AdminSettingsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const me = await requireAdmin();
-  const profile = await getAdminOwnSettings(me.id);
+  const [profile, store] = await Promise.all([
+    getAdminOwnSettings(me.id),
+    getAllSettings(),
+  ]);
 
   return (
     <>
@@ -30,6 +34,7 @@ export default async function AdminSettingsPage({ searchParams }: Props) {
           email: profile?.email ?? me.email,
           company_name: profile?.company_name ?? "",
         }}
+        store={store}
       />
     </>
   );
