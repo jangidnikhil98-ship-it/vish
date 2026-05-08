@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PublicUser } from "@/lib/queries/users";
+import AdminLogoutButton from "./AdminLogoutButton";
 
 /**
  * Port of `resources/views/backend/includes/header.blade.php`.
@@ -41,29 +42,8 @@ export default function AdminHeader({ user }: { user: PublicUser }) {
           </div>
         </div>
 
-        <form
-          className="col-sm-4 form-inline search-full d-none d-xl-block"
-          action="#"
-          method="get"
-        >
-          <div className="form-group">
-            <div className="Typeahead Typeahead--twitterUsers" />
-          </div>
-        </form>
-
         <div className="nav-right col-xl-8 col-lg-12 col-auto pull-right right-header p-0">
           <ul className="nav-menus">
-            <li className="serchinput">
-              <div className="serchbox">
-                <svg>
-                  <use href="/backend/svg/icon-sprite.svg#search" />
-                </svg>
-              </div>
-              <div className="form-group search-form">
-                <input type="text" placeholder="Search here..." />
-              </div>
-            </li>
-
             <li className="profile-nav onhover-dropdown pe-0 py-0">
               <div className="d-flex align-items-center profile-media">
                 <div className="flex-grow-1 user">
@@ -78,16 +58,13 @@ export default function AdminHeader({ user }: { user: PublicUser }) {
               </div>
               <ul className="profile-dropdown onhover-show-div">
                 <li>
-                  <Link href="/admin/setting">
+                  <Link href="/admin/settings">
                     <i data-feather="settings" />
                     <span>Account</span>
                   </Link>
                 </li>
                 <li>
-                  <a href="/api/admin/auth/logout">
-                    <i data-feather="log-in" />
-                    <span>Log Out</span>
-                  </a>
+                  <AdminLogoutButton />
                 </li>
               </ul>
             </li>

@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
     },
     { href: "/admin/blogs", title: "Blogs", icon: "stroke-editors" },
     {
-      href: "/admin/contact-us",
+      href: "/admin/inquiries",
       title: "Inquiries",
       icon: "stroke-editors",
     },

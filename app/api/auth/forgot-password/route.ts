@@ -7,6 +7,8 @@ import {
   upsertPasswordResetToken,
 } from "@/lib/queries/users";
 import { forgotPasswordSchema } from "@/lib/validators/auth";
+import { rateLimit, rateLimitKey } from "@/lib/rate-limit";
+import { siteUrl } from "@/lib/site-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +26,26 @@ export async function POST(req: Request) {
     }
 
     const { email } = parsed.data;
+
+    // Throttle so a single IP can't spam our SMTP quota by mass-requesting
+    // resets for known accounts. Per-IP only — per-email would tip off
+    // attackers as to which addresses exist.
+    const ip = rateLimitKey(req);
+    const limit = rateLimit(`forgot:${ip}`, {
+      limit: 5,
+      windowMs: 15 * 60_000,
+    });
+    if (!limit.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Too many requests. Please wait a few minutes before trying again.",
+        },
+        { status: 429 },
+      );
+    }
+
     const user = await getUserByEmail(email);
 
     // Only do the work if the user exists, but ALWAYS return the same
@@ -32,9 +54,7 @@ export async function POST(req: Request) {
       const { token, hash } = generateResetToken();
       await upsertPasswordResetToken({ email: user.email, tokenHash: hash });
 
-      const baseUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-      const resetUrl = `${baseUrl}/reset-password/${encodeURIComponent(
+      const resetUrl = `${siteUrl()}/reset-password/${encodeURIComponent(
         token,
       )}?email=${encodeURIComponent(user.email)}`;
 

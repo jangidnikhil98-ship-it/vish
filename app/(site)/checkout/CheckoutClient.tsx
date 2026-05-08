@@ -20,7 +20,9 @@ type ShippingForm = {
   email: string;
   first_name: string;
   last_name: string;
+  address: string; // Street address — REQUIRED for courier pickup
   apartment: string;
+  city: string; // REQUIRED for Shiprocket
   state: string;
   pincode: string;
   phone: string;
@@ -122,7 +124,9 @@ const blank: ShippingForm = {
   email: "",
   first_name: "",
   last_name: "",
+  address: "",
   apartment: "",
+  city: "",
   state: "",
   pincode: "",
   phone: "",
@@ -173,6 +177,7 @@ export default function CheckoutClient({
   const [pincodeStatus, setPincodeStatus] = useState<
     "idle" | "checking" | "valid" | "invalid"
   >("idle");
+  const [pincodeServiceable, setPincodeServiceable] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<{
     kind: "info" | "error" | "success";
@@ -190,6 +195,14 @@ export default function CheckoutClient({
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+
+  /* ----- idempotency key (regenerated per form mount) ----- */
+  const [idempotencyKey] = useState<string>(() => {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID();
+    }
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  });
 
   /* ----- hydrate last-used shipping from localStorage ----- */
   useEffect(() => {
@@ -234,17 +247,20 @@ export default function CheckoutClient({
     if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
-  /* ----- pincode async validation + COD serviceability ----- */
+  /* ----- pincode async validation + serviceability check (always) ---- */
   useEffect(() => {
     if (!/^\d{6}$/.test(form.pincode)) {
       setPincodeStatus("idle");
+      setPincodeServiceable(true);
       setCodAvailable(settings.codEnabled);
       return;
     }
     const controller = new AbortController();
     setPincodeStatus("checking");
 
-    // Run the two checks in parallel: India Post validity + Shiprocket COD.
+    // Run the two checks in parallel: India Post validity + Shiprocket
+    // serviceability (run for prepaid AND COD — we want to refuse orders
+    // whose pincode no courier serves regardless of payment method).
     const indiaPost = fetch(
       `https://api.postalpincode.in/pincode/${form.pincode}`,
       { signal: controller.signal },
@@ -262,29 +278,46 @@ export default function CheckoutClient({
         if (!controller.signal.aborted) setPincodeStatus("invalid");
       });
 
-    const shipCheck = settings.codEnabled
-      ? fetch(
-          `/api/shipping/serviceability?deliveryPincode=${form.pincode}&cod=1`,
-          { signal: controller.signal },
-        )
-          .then((r) => r.json() as Promise<ServiceabilityResponse>)
-          .then((res) => {
-            if (res.success && res.data) {
-              setCodAvailable(res.data.codAvailable);
-              if (!res.data.codAvailable && paymentMethod === "cod") {
-                setPaymentMethod("razorpay");
-              }
-            }
-          })
-          .catch(() => {
-            // If serviceability fails (e.g. Shiprocket not configured yet),
-            // we keep COD enabled so the user can still place an order.
-          })
-      : Promise.resolve();
+    const codFlag = settings.codEnabled ? 1 : 0;
+    const shipCheck = fetch(
+      `/api/shipping/serviceability?deliveryPincode=${form.pincode}&cod=${codFlag}`,
+      { signal: controller.signal },
+    )
+      .then((r) => r.json() as Promise<ServiceabilityResponse>)
+      .then((res) => {
+        if (res.success && res.data) {
+          setPincodeServiceable(res.data.serviceable);
+          setCodAvailable(res.data.codAvailable && settings.codEnabled);
+          if (!res.data.codAvailable && paymentMethod === "cod") {
+            setPaymentMethod("razorpay");
+          }
+        }
+      })
+      .catch(() => {
+        // If serviceability fails (e.g. Shiprocket not configured yet),
+        // assume serviceable — better to risk a manual review than block
+        // every checkout.
+        setPincodeServiceable(true);
+      });
 
     void Promise.allSettled([indiaPost, shipCheck]);
     return () => controller.abort();
   }, [form.pincode, settings.codEnabled, paymentMethod]);
+
+  /* ----- auto-clear coupon when cart contents change ---- */
+  useEffect(() => {
+    // The applied coupon was computed against an earlier snapshot of the
+    // cart. Re-resolving on every keystroke would spam the API, so we just
+    // drop the applied state and prompt the user to re-apply.
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponMessage(
+        "Cart changed — please re-apply your coupon for the updated discount.",
+      );
+    }
+    // We deliberately depend on cart subtotal + count, not items reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal, items.length]);
 
   /* ----- coupon apply / remove ----- */
   const applyCoupon = useCallback(async () => {
@@ -345,10 +378,16 @@ export default function CheckoutClient({
       next.email = "Please enter a valid email address";
     if (!form.first_name.trim())
       next.first_name = "Please enter your first name";
+    if (form.address.trim().length < 5)
+      next.address = "Please enter a complete street address";
+    if (form.city.trim().length < 2)
+      next.city = "Please enter your city";
     if (!form.state) next.state = "Please select a state";
     if (!/^\d{6}$/.test(form.pincode))
       next.pincode = "PIN code must be 6 digits";
     else if (pincodeStatus === "invalid") next.pincode = "Invalid PIN code";
+    else if (pincodeStatus === "checking")
+      next.pincode = "Please wait — verifying PIN code…";
     if (!/^\d{10}$/.test(form.phone))
       next.phone = "Phone must be exactly 10 digits";
     setErrors(next);
@@ -392,16 +431,19 @@ export default function CheckoutClient({
         // 1) Create order on the server
         const createRes = await fetch("/api/checkout/create-order", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
           body: JSON.stringify({
             shipping: {
               first_name: form.first_name.trim(),
               last_name: form.last_name.trim(),
               email: form.email.trim(),
               phone: form.phone.trim(),
-              address: "",
+              address: form.address.trim(),
               apartment: form.apartment.trim(),
-              city: "",
+              city: form.city.trim(),
               state: form.state,
               pincode: form.pincode,
               is_save: form.is_save,
@@ -442,6 +484,23 @@ export default function CheckoutClient({
             `/order/success?order_number=${encodeURIComponent(
               created.data.orderNumber,
             )}&method=cod`,
+          );
+          return;
+        }
+
+        /* ============================================================
+           Branch A2 — 100%-off coupon: server marked the order paid
+           immediately, no Razorpay round trip needed.
+           ============================================================ */
+        if (
+          created.data.paymentMethod === "razorpay" &&
+          (created.data as { freeOrder?: boolean }).freeOrder
+        ) {
+          clearCart();
+          router.push(
+            `/order/success?order_number=${encodeURIComponent(
+              created.data.orderNumber,
+            )}&method=free`,
           );
           return;
         }
@@ -579,7 +638,10 @@ export default function CheckoutClient({
   const payDisabled =
     submitting ||
     empty ||
-    (paymentMethod === "razorpay" && !scriptReady);
+    (paymentMethod === "razorpay" && !scriptReady) ||
+    pincodeStatus === "checking" ||
+    pincodeStatus === "invalid" ||
+    !pincodeServiceable;
 
   return (
     <>
@@ -592,7 +654,7 @@ export default function CheckoutClient({
 
       <div className="container checkout-container">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <Link href="/login" className="donate-btn">
+          <Link href="/login?redirect=/checkout" className="donate-btn">
             Login
           </Link>
         </div>
@@ -654,14 +716,46 @@ export default function CheckoutClient({
                   </div>
                   <input
                     type="text"
-                    name="apartment"
+                    name="address"
                     autoComplete="address-line1"
+                    value={form.address}
+                    onChange={(e) => setField("address", e.target.value)}
+                    className={`form-control mb-2 ${errors.address ? "is-invalid" : ""}`}
+                    placeholder="Street address (house no., area, road)"
+                    required
+                  />
+                  {errors.address && (
+                    <small className="text-danger d-block mb-2">
+                      {errors.address}
+                    </small>
+                  )}
+                  <input
+                    type="text"
+                    name="apartment"
+                    autoComplete="address-line2"
                     value={form.apartment}
                     onChange={(e) => setField("apartment", e.target.value)}
                     className="form-control mb-3"
-                    placeholder="Apartment, suite, etc. (optional)"
+                    placeholder="Apartment, suite, landmark (optional)"
                   />
                   <div className="row mb-3">
+                    <div className="col-md-4">
+                      <input
+                        type="text"
+                        name="city"
+                        autoComplete="address-level2"
+                        value={form.city}
+                        onChange={(e) => setField("city", e.target.value)}
+                        className={`form-control ${errors.city ? "is-invalid" : ""}`}
+                        placeholder="City / Town"
+                        required
+                      />
+                      {errors.city && (
+                        <small className="text-danger d-block">
+                          {errors.city}
+                        </small>
+                      )}
+                    </div>
                     <div className="col-md-4">
                       <select
                         className={`form-select ${errors.state ? "is-invalid" : ""}`}
@@ -681,7 +775,7 @@ export default function CheckoutClient({
                         <small className="text-danger">{errors.state}</small>
                       )}
                     </div>
-                    <div className="col-md-2">
+                    <div className="col-md-4">
                       <input
                         type="text"
                         name="pincode"
@@ -709,6 +803,12 @@ export default function CheckoutClient({
                       {(pincodeStatus === "invalid" || errors.pincode) && (
                         <small className="text-danger d-block">
                           {errors.pincode ?? "Invalid PIN code"}
+                        </small>
+                      )}
+                      {pincodeStatus === "valid" && !pincodeServiceable && (
+                        <small className="text-danger d-block">
+                          Sorry, no courier serves this PIN code. Please
+                          contact us before placing the order.
                         </small>
                       )}
                     </div>

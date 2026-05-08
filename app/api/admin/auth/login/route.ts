@@ -10,6 +10,7 @@ import {
   getUserByEmail,
   touchLastLogin,
 } from "@/lib/queries/users";
+import { rateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 /**
  * POST /api/admin/auth/login
@@ -79,6 +80,24 @@ export async function POST(req: Request) {
   }
 
   const { email, password } = parsed.data;
+
+  // Aggressive throttle on admin login — 5 attempts per 15 min per
+  // (IP, email). Admin accounts are higher-value than customer accounts
+  // so we shouldn't be lenient here.
+  const ip = rateLimitKey(req);
+  const limit = rateLimit(`adminLogin:${ip}:${email}`, {
+    limit: 5,
+    windowMs: 15 * 60_000,
+  });
+  if (!limit.ok) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: `Too many sign-in attempts. Please wait ${Math.ceil(limit.retryAfterSeconds / 60)} minute(s) and try again.`,
+      },
+      { status: 429 },
+    );
+  }
 
   // Generic 401 for the "credentials don't match" cases. Same response
   // body and status whether the email is unknown, the password is wrong,

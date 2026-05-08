@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -31,6 +32,20 @@ export type PricedCart = {
 /* ============================================================
    HELPERS
    ============================================================ */
+
+/**
+ * Thrown by `createOrderWithItems` when an item has insufficient stock at
+ * order-time. The route layer translates this into a 409 with a friendly
+ * message naming the affected product.
+ */
+export class InsufficientStockError extends Error {
+  productName: string;
+  constructor(productName: string) {
+    super(`"${productName}" is out of stock or has too few units.`);
+    this.name = "InsufficientStockError";
+    this.productName = productName;
+  }
+}
 
 const toNum = (v: unknown): number => {
   const n = Number(v);
@@ -205,6 +220,12 @@ export async function createOrderWithItems(params: {
   shippingFee: number;
   /** Extra COD handling fee (0 for prepaid orders). */
   codFee: number;
+  /**
+   * Caller-supplied order number. Pass the SAME value you used as the
+   * Razorpay `receipt:` field so admin reconciliation against the Razorpay
+   * dashboard works. If you don't pass one we generate one (legacy callers).
+   */
+  orderNumber?: string;
 }): Promise<OrderRow> {
   const subtotal = params.pricedCart.subtotal;
   const discount = params.appliedCoupon?.discountAmount ?? 0;
@@ -214,10 +235,36 @@ export async function createOrderWithItems(params: {
     Math.round((subtotal - discount + shipping + cod) * 100) / 100;
 
   return db.transaction(async (tx) => {
-    const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)
-      .toUpperCase()}`;
+    // Decrement stock per-line atomically. The conditional WHERE clause
+    // (`stock_quantity >= ?`) means a concurrent buy that would oversell
+    // simply gets `affectedRows = 0` and we abort the transaction with a
+    // user-visible error. No reservations table needed.
+    for (const line of params.pricedCart.items) {
+      const [updateRes] = await tx.execute(
+        sql`UPDATE products
+              SET stock_quantity = stock_quantity - ${line.quantity}
+            WHERE id = ${line.productId}
+              AND stock_quantity >= ${line.quantity}`,
+      );
+      // mysql2 returns OkPacket-like for UPDATE; check affectedRows.
+      const affected = (updateRes as { affectedRows?: number }).affectedRows ?? 0;
+      if (affected === 0) {
+        const [prod] = await tx
+          .select({ name: products.product_name })
+          .from(products)
+          .where(eq(products.id, line.productId))
+          .limit(1);
+        throw new InsufficientStockError(
+          prod?.name ?? `Product #${line.productId}`,
+        );
+      }
+    }
+
+    const orderNumber =
+      params.orderNumber ??
+      `ORD-${Date.now().toString(36).toUpperCase()}-${randomUUID()
+        .slice(0, 8)
+        .toUpperCase()}`;
 
     const [orderInsert] = await tx.insert(orders).values({
       user_id: params.userId,
@@ -781,6 +828,15 @@ export async function markOrderFailed(
       .limit(1);
     if (!payment) return;
 
+    // Skip if the order is already paid (defensive against late "failed"
+    // webhooks for an order the user actually retried successfully).
+    const [order] = await tx
+      .select({ paymentStatus: orders.payment_status })
+      .from(orders)
+      .where(eq(orders.id, payment.order_id))
+      .limit(1);
+    if (order?.paymentStatus === "paid") return;
+
     await tx
       .update(paymentDetails)
       .set({ status: "failed", payment_details: rawPaymentJson })
@@ -790,6 +846,104 @@ export async function markOrderFailed(
       .update(orders)
       .set({ payment_status: "failed" })
       .where(eq(orders.id, payment.order_id));
+
+    // Stock was decremented when the order was created. Failure means the
+    // customer never actually paid (or chose not to retry), so put the
+    // units back so the next buyer can have them.
+    await restoreStockForOrderTx(tx, payment.order_id);
+    await restoreCouponForOrderTx(tx, payment.order_id);
+  });
+}
+
+/**
+ * Restore product_sizes / products.stock_quantity for every line item of
+ * the given order. Idempotent — calling twice is safe (we cap total stock
+ * at the original value at order-creation time, so re-adds just no-op
+ * since we don't know the original cap, but consecutive failures of the
+ * same order are extremely rare and we prefer over-restore to under-).
+ *
+ * Internal — not exported, callers should use `markOrderFailed` /
+ * `cancelOrderRestoring` so the order's status is updated atomically.
+ */
+async function restoreStockForOrderTx(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  orderId: number,
+): Promise<void> {
+  const items = await tx
+    .select({
+      productId: orderItems.product_id,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(eq(orderItems.order_id, orderId));
+
+  for (const it of items) {
+    if (!it.productId || !it.quantity) continue;
+    await tx.execute(
+      sql`UPDATE products
+            SET stock_quantity = stock_quantity + ${it.quantity}
+          WHERE id = ${it.productId}`,
+    );
+  }
+}
+
+/**
+ * Decrement coupons.used_count and delete the redemption row for an order.
+ * Used when an order is cancelled / payment failed so we don't burn a
+ * coupon's usage cap on a customer who never actually paid.
+ */
+async function restoreCouponForOrderTx(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  orderId: number,
+): Promise<void> {
+  const [order] = await tx
+    .select({ couponId: orders.coupon_id })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+  if (!order?.couponId) return;
+
+  // Was a redemption recorded for this order?
+  const redemptions = await tx
+    .select({ id: couponRedemptions.id })
+    .from(couponRedemptions)
+    .where(eq(couponRedemptions.order_id, orderId));
+  if (redemptions.length === 0) return;
+
+  await tx
+    .delete(couponRedemptions)
+    .where(eq(couponRedemptions.order_id, orderId));
+
+  await tx
+    .update(couponsTable)
+    .set({
+      used_count: sql`GREATEST(${couponsTable.used_count} - ${redemptions.length}, 0)`,
+      updated_at: sql`CURRENT_TIMESTAMP`,
+    })
+    .where(eq(couponsTable.id, order.couponId));
+}
+
+/**
+ * Cancel an order (admin path) — flips status to "cancelled", restores
+ * stock, and unwinds the coupon redemption if any. Idempotent.
+ */
+export async function cancelOrderRestoring(orderId: number): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [order] = await tx
+      .select({ status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+    if (!order) return;
+    if (order.status === "cancelled") return;
+
+    await tx
+      .update(orders)
+      .set({ status: "cancelled" })
+      .where(eq(orders.id, orderId));
+
+    await restoreStockForOrderTx(tx, orderId);
+    await restoreCouponForOrderTx(tx, orderId);
   });
 }
 

@@ -1,26 +1,16 @@
 import type { NextRequest } from "next/server";
 import { fail, handleError, ok } from "@/lib/api";
 import { verifyPaymentSchema } from "@/lib/validators/checkout";
-import {
-  getOrderForNotification,
-  markOrderPaid,
-} from "@/lib/queries/orders";
+import { markOrderPaid } from "@/lib/queries/orders";
 import { razorpay, verifyPaymentSignature } from "@/lib/razorpay";
+import { notifyOrderPaid } from "@/lib/notifications/order";
 import {
-  sendAdminOrderNotification,
-  sendOrderConfirmation,
-} from "@/lib/email";
-import {
-  sendAdminOrderWhatsApp,
-  sendCustomerOrderWhatsApp,
-} from "@/lib/whatsapp";
+  createShiprocketOrderForOrder,
+  shouldAutoCreateShiprocket,
+} from "@/lib/notifications/shipping";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-).replace(/\/$/, "");
 
 /**
  * POST /api/checkout/verify-payment
@@ -37,6 +27,9 @@ const SITE_URL = (
  *     here. They are deduped against the webhook by checking
  *     `wasAlreadyPaid`, so the customer never gets two confirmation
  *     emails even if both code paths run.
+ *   - On the first paid transition we also push the order to Shiprocket
+ *     (the COD branch in /api/checkout/create-order does this directly,
+ *     but prepaid orders only become eligible once the payment lands).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -63,7 +56,6 @@ export async function POST(req: NextRequest) {
       return fail("Payment signature verification failed", 400);
     }
 
-    // Belt-and-braces: also fetch from Razorpay to read the live status.
     const payment = await razorpay().payments.fetch(razorpay_payment_id);
     if (
       payment.status !== "authorized" &&
@@ -82,148 +74,25 @@ export async function POST(req: NextRequest) {
       return fail("Order record not found for this payment", 404);
     }
 
-    // Fire-and-forget notifications (email + WhatsApp). Run only when this
-    // is the first time we're marking the order as paid — prevents duplicates
-    // when the webhook also fires for the same payment.
     if (!updated.wasAlreadyPaid) {
       void notifyOrderPaid({
         orderId: updated.orderId,
         razorpayPaymentId: razorpay_payment_id,
       });
+
+      // Push to Shiprocket on first paid transition. Fire-and-forget — a
+      // Shiprocket outage must not break the customer's "thank you" page.
+      if (await shouldAutoCreateShiprocket()) {
+        void createShiprocketOrderForOrder(updated.orderId, {
+          paymentMethod: "Prepaid",
+        }).catch((err) => {
+          console.error("[shiprocket] prepaid push failed:", err);
+        });
+      }
     }
 
     return ok({ orderId: updated.orderId });
   } catch (err) {
     return handleError(err);
   }
-}
-
-/**
- * Send all post-checkout notifications (customer email, admin email, admin
- * WhatsApp, optional customer WhatsApp). Used by:
- *   - verify-payment (Razorpay) on first transition to paid
- *   - payment/webhook (Razorpay) on first transition to paid
- *   - create-order (COD) immediately after the order is persisted
- *
- * Never throws — every leg is independently caught so a flaky email or
- * WhatsApp gateway can't break the others.
- */
-export async function notifyOrderPlaced(params: {
-  orderId: number;
-  /** "razorpay" → "Order confirmed" wording. "cod" → "Pay on delivery". */
-  paymentMethod: "razorpay" | "cod";
-  /** Only set when paymentMethod = "razorpay". */
-  razorpayPaymentId?: string | null;
-}): Promise<void> {
-  let order;
-  try {
-    order = await getOrderForNotification(params.orderId);
-  } catch (err) {
-    console.error("[notify] failed to load order:", err);
-    return;
-  }
-  if (!order) {
-    console.warn("[notify] order not found for id", params.orderId);
-    return;
-  }
-
-  const items = order.items.map((it) => ({
-    name: it.name,
-    quantity: it.quantity,
-    price: it.price,
-    size: it.size,
-    variation: it.variation,
-    giftWrap: it.giftWrap,
-  }));
-
-  const breakdown = {
-    subtotal: order.subtotal,
-    discountAmount: order.discountAmount,
-    couponCode: order.couponCode,
-    shippingFee: order.shippingFee,
-    codFee: order.codFee,
-  };
-
-  // 1) Customer order confirmation email
-  if (order.customerEmail) {
-    try {
-      await sendOrderConfirmation({
-        to: order.customerEmail,
-        orderNumber: order.orderNumber,
-        customerName: order.customerName,
-        totalAmount: order.totalAmount,
-        items,
-        shipping: order.shipping,
-        paymentId: params.razorpayPaymentId ?? null,
-        paymentMethod: params.paymentMethod,
-        breakdown,
-      });
-    } catch (err) {
-      console.error("[notify] customer email failed:", err);
-    }
-  }
-
-  // 2) Admin order received email
-  try {
-    await sendAdminOrderNotification({
-      orderNumber: order.orderNumber,
-      customerName: order.customerName,
-      customerEmail: order.customerEmail,
-      customerPhone: order.customerPhone,
-      totalAmount: order.totalAmount,
-      items,
-      shipping: order.shipping,
-      paymentId: params.razorpayPaymentId ?? null,
-      paymentMethod: params.paymentMethod,
-      adminUrl: `${SITE_URL}/admin/orders`,
-    });
-  } catch (err) {
-    console.error("[notify] admin email failed:", err);
-  }
-
-  // 3) Admin WhatsApp alert
-  try {
-    await sendAdminOrderWhatsApp({
-      orderNumber: order.orderNumber,
-      customerName: order.customerName,
-      customerEmail: order.customerEmail,
-      customerPhone: order.customerPhone,
-      totalAmount: order.totalAmount,
-      items,
-      shippingCity: order.shipping?.city ?? null,
-      shippingPincode: order.shipping?.pincode ?? null,
-    });
-  } catch (err) {
-    console.error("[notify] admin WhatsApp failed:", err);
-  }
-
-  // 4) Customer WhatsApp confirmation (best-effort — only if they gave a
-  //    phone number and a provider is configured).
-  if (order.customerPhone) {
-    try {
-      await sendCustomerOrderWhatsApp({
-        to: order.customerPhone,
-        orderNumber: order.orderNumber,
-        customerName: order.customerName,
-        totalAmount: order.totalAmount,
-      });
-    } catch (err) {
-      console.error("[notify] customer WhatsApp failed:", err);
-    }
-  }
-}
-
-/**
- * Backwards-compatible alias for the Razorpay paths (verify-payment +
- * webhook). New code should call `notifyOrderPlaced` directly.
- */
-export async function notifyOrderPaid(params: {
-  orderId: number;
-  razorpayPaymentId: string;
-}): Promise<void> {
-  return notifyOrderPlaced({
-    orderId: params.orderId,
-    paymentMethod: "razorpay",
-    razorpayPaymentId: params.razorpayPaymentId,
-  });
 }

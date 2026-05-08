@@ -2,7 +2,6 @@ import { requireAdmin } from "@/lib/admin-auth";
 import AdminHeader from "./_components/AdminHeader";
 import AdminSidebar from "./_components/AdminSidebar";
 import AdminFooter from "./_components/AdminFooter";
-import AdminDeleteModal from "./_components/AdminDeleteModal";
 
 /**
  * Wraps every authenticated admin page with the Pixelstrap Zono chrome:
@@ -11,10 +10,7 @@ import AdminDeleteModal from "./_components/AdminDeleteModal";
  *     <header />                          ← AdminHeader
  *     <div class="page-body-wrapper">
  *       <sidebar />                       ← AdminSidebar
- *       <div class="page-body">
- *         {children}
- *         <delete modal />                ← AdminDeleteModal
- *       </div>
+ *       <div class="page-body">{children}</div>
  *     </div>
  *     <footer />                          ← AdminFooter
  *   </div>
@@ -33,10 +29,7 @@ export default async function AuthenticatedAdminLayout({
       <AdminHeader user={user} />
       <div className="page-body-wrapper">
         <AdminSidebar />
-        <div className="page-body">
-          {children}
-          <AdminDeleteModal />
-        </div>
+        <div className="page-body">{children}</div>
       </div>
       <AdminFooter />
     </div>

@@ -8,6 +8,8 @@ import {
   setAdminOrderStatus,
 } from "@/lib/queries/admin/orders";
 import { adminOrderStatusSchema } from "@/lib/validators/admin";
+import { cancelOrderRestoring } from "@/lib/queries/orders";
+import { cancelShiprocketOrderForOrder } from "@/lib/notifications/shipping";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +32,19 @@ export async function POST(req: NextRequest, ctx: Ctx) {
 
     const body = await req.json();
     const { status } = adminOrderStatusSchema.parse(body);
-    await setAdminOrderStatus(id, status);
+
+    // Special handling when the admin cancels:
+    //   - Restore product stock and unwind coupon redemption.
+    //   - Tell Shiprocket to cancel the courier booking (if any).
+    if (status === "cancelled" && order.status !== "cancelled") {
+      await cancelOrderRestoring(id);
+      // Fire-and-forget — admin doesn't need to wait for SR's API.
+      void cancelShiprocketOrderForOrder(id).catch((err) => {
+        console.error("[shiprocket] cancel failed for order", id, err);
+      });
+    } else {
+      await setAdminOrderStatus(id, status);
+    }
 
     return ok({ message: "Order status updated", status });
   } catch (err) {

@@ -8,6 +8,7 @@ import {
   getCheckoutSettings,
   getShiprocketSettings,
 } from "@/lib/queries/admin/settings";
+import { rateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,18 @@ const querySchema = z.object({
  */
 export async function GET(req: NextRequest) {
   try {
+    // Each Shiprocket serviceability call costs us a real upstream request,
+    // so rate-limit the public endpoint aggressively. 60 calls/min/IP is
+    // way more than a real customer typing a PIN code generates.
+    const ip = rateLimitKey(req);
+    const limit = rateLimit(`serviceability:${ip}`, {
+      limit: 60,
+      windowMs: 60_000,
+    });
+    if (!limit.ok) {
+      return fail("Too many requests", 429);
+    }
+
     const url = new URL(req.url);
     const parsed = querySchema.safeParse({
       pickupPincode: url.searchParams.get("pickupPincode") ?? undefined,

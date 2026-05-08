@@ -64,11 +64,18 @@ async function sendMail(opts: {
   replyTo?: string;
 }): Promise<void> {
   const transporter = buildTransport();
+  // Counts only — don't log recipient address or subject (PII + leaks the
+  // existence of accounts to anyone with log access). In dev, log a short
+  // hash of the recipient so devs can correlate events.
+  const recipientHash =
+    process.env.NODE_ENV === "production"
+      ? "[redacted]"
+      : Array.isArray(opts.to)
+        ? `${opts.to.length} recipients`
+        : opts.to.split("@")[0].slice(0, 3) + "***";
+
   if (!transporter) {
-    console.info(
-      "[email] SMTP not configured — skipping email",
-      JSON.stringify({ to: opts.to, subject: opts.subject }),
-    );
+    console.info("[email] SMTP not configured — skipping send", recipientHash);
     return;
   }
 
@@ -81,14 +88,7 @@ async function sendMail(opts: {
       text: opts.text ?? stripHtml(opts.html),
       replyTo: opts.replyTo,
     });
-    console.info(
-      "[email] sent",
-      JSON.stringify({
-        to: opts.to,
-        subject: opts.subject,
-        messageId: info.messageId,
-      }),
-    );
+    console.info("[email] sent", info.messageId, recipientHash);
   } catch (err) {
     console.error("[email] send failed:", err);
   }

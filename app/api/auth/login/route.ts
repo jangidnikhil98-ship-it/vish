@@ -3,6 +3,7 @@ import { fail, handleError } from "@/lib/api";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { getUserByEmail, touchLastLogin } from "@/lib/queries/users";
 import { loginSchema } from "@/lib/validators/auth";
+import { rateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,22 @@ export async function POST(req: Request) {
     }
 
     const { email, password } = parsed.data;
+
+    // Per-IP+email throttle. 5 attempts per 15 minutes per (IP, email)
+    // pair is enough for normal "I forgot which password I used" UX, and
+    // tight enough that online dictionary attacks against a known account
+    // aren't viable.
+    const ip = rateLimitKey(req);
+    const limit = rateLimit(`login:${ip}:${email}`, {
+      limit: 5,
+      windowMs: 15 * 60_000,
+    });
+    if (!limit.ok) {
+      return fail(
+        `Too many sign-in attempts. Please wait ${Math.ceil(limit.retryAfterSeconds / 60)} minute(s) and try again.`,
+        429,
+      );
+    }
     const user = await getUserByEmail(email);
 
     // Run bcrypt even on a missing user, so timing doesn't leak whether

@@ -2,7 +2,11 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { markOrderFailed, markOrderPaid } from "@/lib/queries/orders";
-import { notifyOrderPaid } from "@/app/api/checkout/verify-payment/route";
+import { notifyOrderPaid } from "@/lib/notifications/order";
+import {
+  createShiprocketOrderForOrder,
+  shouldAutoCreateShiprocket,
+} from "@/lib/notifications/shipping";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,6 +67,15 @@ export async function POST(req: NextRequest) {
               orderId: updated.orderId,
               razorpayPaymentId: entity.id,
             });
+            // Push to Shiprocket on first paid transition (in case
+            // verify-payment didn't run — e.g. user closed the tab).
+            if (await shouldAutoCreateShiprocket()) {
+              void createShiprocketOrderForOrder(updated.orderId, {
+                paymentMethod: "Prepaid",
+              }).catch((e) =>
+                console.error("[shiprocket] webhook prepaid push failed:", e),
+              );
+            }
           }
         }
         break;

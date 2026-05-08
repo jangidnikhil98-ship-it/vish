@@ -31,9 +31,16 @@ export const shippingSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{10}$/, "Phone must be exactly 10 digits"),
-  address: z.string().trim().max(255).optional().default(""),
+  // Required: courier won't accept a shipment without a real street line
+  // and a city. The Shiprocket integration used to fall back to using the
+  // state name as the city, which is rejected as bad data quality.
+  address: z
+    .string()
+    .trim()
+    .min(5, "Street address is required")
+    .max(255),
   apartment: z.string().trim().max(255).optional().default(""),
-  city: z.string().trim().max(255).optional().default(""),
+  city: z.string().trim().min(2, "City is required").max(120),
   state: z.string().trim().min(1, "State is required").max(255),
   pincode: z
     .string()

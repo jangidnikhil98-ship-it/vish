@@ -59,18 +59,34 @@ export function AdminStatusToggle({
     }
   }
 
+  // Use a visible icon AND text — colour alone fails colour-blind users
+  // and is what M-WCAG 1.4.1 calls out as "use of colour".
+  const icon = active ? "✓" : "✗";
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={busy}
+      aria-pressed={active}
+      aria-label={
+        busy ? "Updating status…" : `Status: ${active ? activeLabel : inactiveLabel}. Click to change.`
+      }
+      title={`Status: ${active ? activeLabel : inactiveLabel}`}
       className={
-        "badge rounded-pill p-2 cursorPointer " +
+        "badge rounded-pill p-2 " +
         (active ? "badge-success" : "badge-danger")
       }
-      style={{ border: "none" }}
+      style={{
+        border: "none",
+        cursor: busy ? "wait" : "pointer",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+      }}
     >
-      {active ? activeLabel : inactiveLabel}
+      <span aria-hidden="true">{icon}</span>
+      <span>{active ? activeLabel : inactiveLabel}</span>
     </button>
   );
 }

@@ -19,6 +19,7 @@
 import { config } from "dotenv";
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 
 config({ path: ".env" });
 config({ path: ".env.local", override: true });
@@ -50,9 +51,23 @@ const seedEmail = (
 )
   .toLowerCase()
   .trim();
-const seedPassword = envOr("ADMIN_SEED_PASSWORD") ?? "Admin@12345";
+
+// Generate a strong random password if the operator hasn't supplied one.
+// Bygone behaviour was to default to the literal string "Admin@12345" and
+// print it to stdout — anyone who'd ever read this script could log in.
+let seedPassword = envOr("ADMIN_SEED_PASSWORD");
+let generatedPassword = false;
+if (!seedPassword) {
+  seedPassword = crypto.randomBytes(12).toString("base64url"); // ~16 chars
+  generatedPassword = true;
+}
+
 const seedFirstName = envOr("ADMIN_SEED_FIRST_NAME") ?? "Admin";
 const seedLastName = envOr("ADMIN_SEED_LAST_NAME") ?? "User";
+
+// Match BCRYPT_ROUNDS in lib/auth.ts so the seeded admin's hash is no
+// weaker than a freshly-registered user's.
+const BCRYPT_ROUNDS = 12;
 
 const conn = await mysql.createConnection({
   host,
@@ -87,7 +102,7 @@ try {
       updates.push("deleted_at = NULL");
     }
     if (resetPassword) {
-      const hash = await bcrypt.hash(seedPassword, 10);
+      const hash = await bcrypt.hash(seedPassword, BCRYPT_ROUNDS);
       updates.push("password = ?");
       params.push(hash);
     }
@@ -97,7 +112,7 @@ try {
         `User #${u.id} <${u.email}> is already an active admin. Nothing to do.`,
       );
       console.log(
-        `  (pass --reset-password if you want to reset the password to "${seedPassword}".)`,
+        `  (pass --reset-password to reset the password.)`,
       );
       process.exit(0);
     }
@@ -113,10 +128,11 @@ try {
     console.log(`  role        → admin`);
     console.log(`  is_active   → 1`);
     if (resetPassword) {
-      console.log(`  password    → "${seedPassword}"`);
+      console.log(`  password    → reset (see below)`);
+      printPasswordIfGenerated();
     }
   } else {
-    const hash = await bcrypt.hash(seedPassword, 10);
+    const hash = await bcrypt.hash(seedPassword, BCRYPT_ROUNDS);
     const [result] = await conn.query(
       `INSERT INTO users
          (first_name, last_name, email, password, role, is_active,
@@ -127,8 +143,20 @@ try {
     );
     console.log(`Created admin user #${result.insertId}:`);
     console.log(`  email       ${seedEmail}`);
-    console.log(`  password    ${seedPassword}`);
     console.log(`  name        ${seedFirstName} ${seedLastName}`);
+    printPasswordIfGenerated();
+  }
+
+  function printPasswordIfGenerated() {
+    if (generatedPassword) {
+      console.log("");
+      console.log("  >>> Generated password (NOT stored anywhere) <<<");
+      console.log(`  >>> ${seedPassword}`);
+      console.log("  >>> Change it on first login.");
+      console.log("");
+    } else {
+      console.log("  password    (from ADMIN_SEED_PASSWORD env)");
+    }
   }
 
   console.log("");

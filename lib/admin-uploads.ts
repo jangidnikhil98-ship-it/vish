@@ -8,12 +8,13 @@ const PUBLIC_ROOT = path.join(process.cwd(), "public");
 const STORAGE_ROOT = path.join(PUBLIC_ROOT, "storage");
 
 const PRODUCT_IMAGE_MIME = new Set(["image/webp"]);
+// SVG intentionally NOT included — SVGs can carry inline <script> and would
+// be served from /storage/blogs/ as image/svg+xml, opening a stored-XSS vector.
 const BLOG_IMAGE_MIME = new Set([
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/gif",
-  "image/svg+xml",
   "image/webp",
 ]);
 
@@ -145,8 +146,6 @@ function pickExtension(mime: string): string {
       return "webp";
     case "image/gif":
       return "gif";
-    case "image/svg+xml":
-      return "svg";
     case "image/jpeg":
     case "image/jpg":
     default:

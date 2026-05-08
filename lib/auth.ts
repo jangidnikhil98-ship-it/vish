@@ -15,12 +15,30 @@ const BCRYPT_ROUNDS = 12;
 
 const PROD = process.env.NODE_ENV === "production";
 
+/**
+ * Strings we treat as "not a real secret" — refuse to sign with these so an
+ * operator can't accidentally ship the placeholder from `.env.example`.
+ */
+const PLACEHOLDER_SECRETS = new Set([
+  "change-me",
+  "change-me-to-a-long-random-string-please",
+  "your-secret-here",
+  "secret",
+  "password",
+]);
+
 function getSigningKey(): Uint8Array {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 16) {
+  const secret = process.env.AUTH_SECRET?.trim();
+  if (!secret || secret.length < 32) {
     throw new Error(
-      "AUTH_SECRET is missing or too short. Add a long random value to .env. " +
+      "AUTH_SECRET is missing or too short (need ≥ 32 chars). Add a long random value to .env. " +
         'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'base64url\'))"',
+    );
+  }
+  if (PLACEHOLDER_SECRETS.has(secret.toLowerCase())) {
+    throw new Error(
+      "AUTH_SECRET is set to the documented placeholder value. " +
+        "Replace it with a real random string before starting the server.",
     );
   }
   return new TextEncoder().encode(secret);

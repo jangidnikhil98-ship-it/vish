@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 /**
  * Shiprocket REST client (https://apiv2.shiprocket.in).
  *
@@ -507,16 +509,18 @@ export async function trackByAwb(awbCode: string): Promise<TrackingResult> {
  * Shiprocket sends a static `X-Api-Key` header with the value you
  * configure in their dashboard. We validate it against the
  * SHIPROCKET_WEBHOOK_TOKEN env var. Returns true if valid.
+ *
+ * Implementation note: rather than compare the raw strings (which leaks
+ * the secret length on a length-mismatch fast-path), we HMAC both inputs
+ * with a fixed key and compare the equal-length digests via
+ * `crypto.timingSafeEqual`. This makes both the success and failure paths
+ * the same length, preventing trivial token-length probing.
  */
 export function verifyShiprocketWebhookToken(headerValue: string | null): boolean {
   const expected = process.env.SHIPROCKET_WEBHOOK_TOKEN;
   if (!expected) return false;
   if (!headerValue) return false;
-  // Constant-time-ish comparison
-  if (headerValue.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < headerValue.length; i++) {
-    diff |= headerValue.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return diff === 0;
+  const a = createHmac("sha256", "shiprocket-webhook").update(headerValue).digest();
+  const b = createHmac("sha256", "shiprocket-webhook").update(expected).digest();
+  return timingSafeEqual(a, b);
 }
