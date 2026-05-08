@@ -6,6 +6,29 @@ import { coupons, couponRedemptions } from "@/lib/db/schema";
 import { buildListResult, type ListResult } from "@/lib/admin-pagination";
 
 /* ============================================================
+   Helper: silence "table doesn't exist" errors so the app keeps
+   working before the migration script has been run on a server.
+   ============================================================ */
+
+let warnedMissing = false;
+function isMissingTableError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { code?: string; message?: string };
+  if (e.code === "ER_NO_SUCH_TABLE") return true;
+  return /(coupons|coupon_redemptions).*doesn't exist|no such table|er_no_such_table/i.test(
+    String(e.message ?? ""),
+  );
+}
+function warnMissing(): void {
+  if (warnedMissing) return;
+  warnedMissing = true;
+  console.warn(
+    "[coupons] table does not exist yet — coupons disabled until you run " +
+      "`npm run db:migrate-coupons-cod`.",
+  );
+}
+
+/* ============================================================
    TYPES
    ============================================================ */
 
@@ -59,34 +82,42 @@ export async function listAdminCoupons(params: {
   }
   const whereExpr = whereParts.length ? and(...whereParts) : undefined;
 
-  const rows = await db
-    .select({
-      id: coupons.id,
-      code: coupons.code,
-      type: coupons.type,
-      value: coupons.value,
-      min_order_amount: coupons.min_order_amount,
-      max_discount_amount: coupons.max_discount_amount,
-      usage_limit: coupons.usage_limit,
-      used_count: coupons.used_count,
-      description: coupons.description,
-      valid_from: coupons.valid_from,
-      valid_until: coupons.valid_until,
-      is_active: coupons.is_active,
-      created_at: coupons.created_at,
-    })
-    .from(coupons)
-    .where(whereExpr)
-    .orderBy(desc(coupons.id))
-    .limit(perPage)
-    .offset(offset);
+  try {
+    const rows = await db
+      .select({
+        id: coupons.id,
+        code: coupons.code,
+        type: coupons.type,
+        value: coupons.value,
+        min_order_amount: coupons.min_order_amount,
+        max_discount_amount: coupons.max_discount_amount,
+        usage_limit: coupons.usage_limit,
+        used_count: coupons.used_count,
+        description: coupons.description,
+        valid_from: coupons.valid_from,
+        valid_until: coupons.valid_until,
+        is_active: coupons.is_active,
+        created_at: coupons.created_at,
+      })
+      .from(coupons)
+      .where(whereExpr)
+      .orderBy(desc(coupons.id))
+      .limit(perPage)
+      .offset(offset);
 
-  const [{ count } = { count: 0 }] = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(coupons)
-    .where(whereExpr);
+    const [{ count } = { count: 0 }] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(coupons)
+      .where(whereExpr);
 
-  return buildListResult(rows, Number(count), page, perPage);
+    return buildListResult(rows, Number(count), page, perPage);
+  } catch (err) {
+    if (isMissingTableError(err)) {
+      warnMissing();
+      return buildListResult([], 0, page, perPage);
+    }
+    throw err;
+  }
 }
 
 export async function getAdminCouponById(
@@ -249,11 +280,20 @@ export async function resolveCoupon(params: {
   const code = params.code.trim().toUpperCase();
   if (!code) return { ok: false, message: "Please enter a coupon code." };
 
-  const [row] = await db
-    .select()
-    .from(coupons)
-    .where(eq(coupons.code, code))
-    .limit(1);
+  let row;
+  try {
+    [row] = await db
+      .select()
+      .from(coupons)
+      .where(eq(coupons.code, code))
+      .limit(1);
+  } catch (err) {
+    if (isMissingTableError(err)) {
+      warnMissing();
+      return { ok: false, message: "Invalid coupon code." };
+    }
+    throw err;
+  }
 
   if (!row) return { ok: false, message: "Invalid coupon code." };
   if (row.is_active !== 1) {
