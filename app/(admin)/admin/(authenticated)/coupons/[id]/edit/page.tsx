@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { getAdminCouponById } from "@/lib/queries/admin/coupons";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { FlashMessage } from "../../../_components/FlashMessage";
-import { CouponForm, toDateTimeLocal } from "../../_components/CouponForm";
+import { CouponForm } from "../../_components/CouponForm";
+import { toDateTimeLocal } from "../../_components/datetime";
 
 export const metadata: Metadata = { title: "Edit Coupon | Admin" };
 export const dynamic = "force-dynamic";

@@ -20,16 +20,6 @@ export interface CouponFormProps {
   };
 }
 
-/** Convert a JS Date or null to the value expected by `<input type="datetime-local">`. */
-export function toDateTimeLocal(d: Date | null): string {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
-}
-
 export function CouponForm({ mode, couponId, initial }: CouponFormProps) {
   const router = useRouter();
   const [code, setCode] = useState(initial.code);
