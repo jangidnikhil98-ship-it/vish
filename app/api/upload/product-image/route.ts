@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await readSession();
     const existingGuestId = req.cookies.get("guest_id")?.value;
-    const guestId = session ? existingGuestId : existingGuestId ?? randomUUID();
+    const guestId = existingGuestId ?? randomUUID();
 
     const ipKey = ipFromRequest(req);
     const limited = rateLimit(`upload:${ipKey}`, { limit: 10, windowMs: 5 * 60_000 });
