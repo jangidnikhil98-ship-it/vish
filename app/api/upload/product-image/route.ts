@@ -60,8 +60,8 @@ function detectMime(buffer: Buffer): string | null {
  * Used by the storefront product-customisation flow (Konva canvas → blob).
  *
  * Hardening:
- *   - Requires either a signed-in user OR a guest_id cookie (so the upload
- *     is bound to a checkout session, not pure anonymous internet access).
+ *   - Binds anonymous uploads to a guest_id cookie, creating one if the
+ *     customer has not reached checkout yet.
  *   - Rate-limited per IP (10 uploads / 5 minutes).
  *   - Validates file magic bytes server-side, not the client-supplied
  *     Content-Type.
@@ -75,10 +75,8 @@ function detectMime(buffer: Buffer): string | null {
 export async function POST(req: NextRequest) {
   try {
     const session = await readSession();
-    const guestId = req.cookies.get("guest_id")?.value;
-    if (!session && !guestId) {
-      return fail("Authentication required", 401);
-    }
+    const existingGuestId = req.cookies.get("guest_id")?.value;
+    const guestId = session ? existingGuestId : existingGuestId ?? randomUUID();
 
     const ipKey = ipFromRequest(req);
     const limited = rateLimit(`upload:${ipKey}`, { limit: 10, windowMs: 5 * 60_000 });
@@ -118,10 +116,20 @@ export async function POST(req: NextRequest) {
 
     await writeFile(path.join(absoluteDir, filename), buffer);
 
-    return ok({
+    const response = ok({
       path: `${relativeDir}/${filename}`,
       url: `/storage/${relativeDir}/${filename}`,
     });
+    if (!session && !existingGuestId) {
+      response.cookies.set("guest_id", guestId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
+    return response;
   } catch (err) {
     return handleError(err);
   }
