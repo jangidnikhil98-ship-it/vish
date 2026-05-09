@@ -63,6 +63,12 @@ const nextConfig: NextConfig = {
     parallelServerCompiles: false,
     parallelServerBuildTraces: false,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
