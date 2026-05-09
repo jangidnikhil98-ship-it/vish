@@ -24,7 +24,10 @@ export const SETTING_DEFAULTS = {
   shiprocket_default_length_cm: "15",
   shiprocket_default_breadth_cm: "15",
   shiprocket_default_height_cm: "5",
-  shiprocket_auto_create_order: "1",
+  // Default = "0" → admin manually pushes each order from the order detail
+  // page when it's actually ready to ship. Flip to "1" to push every order
+  // to Shiprocket automatically the moment payment lands (or COD is placed).
+  shiprocket_auto_create_order: "0",
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;

@@ -6,6 +6,7 @@ import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { FlashMessage } from "../../_components/FlashMessage";
 import { OrderStatusForm } from "./OrderStatusForm";
 import { MarkPaidButton } from "./MarkPaidButton";
+import { PushToShiprocketButton } from "./PushToShiprocketButton";
 
 export const metadata: Metadata = { title: "Order Details | Admin" };
 export const dynamic = "force-dynamic";
@@ -211,15 +212,14 @@ export default async function AdminOrderViewPage({
               </div>
             ) : null}
 
-            {order.shipping &&
-            (order.shipping.awb_code ||
-              order.shipping.shiprocket_order_id) ? (
-              <div className="card">
-                <div className="card-header pb-0">
-                  <h5>Shipment (Shiprocket)</h5>
-                </div>
-                <div className="card-body">
-                  <ul className="list-unstyled mb-0 small">
+            <div className="card">
+              <div className="card-header pb-0">
+                <h5>Shipment (Shiprocket)</h5>
+              </div>
+              <div className="card-body">
+                {order.shipping?.shiprocket_order_id ||
+                order.shipping?.awb_code ? (
+                  <ul className="list-unstyled mb-3 small">
                     {order.shipping.shiprocket_order_id ? (
                       <li>
                         <strong>SR Order:</strong>{" "}
@@ -236,6 +236,19 @@ export default async function AdminOrderViewPage({
                       <li>
                         <strong>AWB:</strong>{" "}
                         <code>{order.shipping.awb_code}</code>
+                        {order.shipping.tracking_url ? (
+                          <>
+                            {" "}
+                            ·{" "}
+                            <a
+                              href={order.shipping.tracking_url}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                            >
+                              Track
+                            </a>
+                          </>
+                        ) : null}
                       </li>
                     ) : null}
                     {order.shipping.tracking_status ? (
@@ -245,9 +258,24 @@ export default async function AdminOrderViewPage({
                       </li>
                     ) : null}
                   </ul>
-                </div>
+                ) : (
+                  <p className="text-muted small mb-3">
+                    This order is not in Shiprocket yet. Click below when
+                    the parcel is packed and ready to ship.
+                  </p>
+                )}
+                <PushToShiprocketButton
+                  orderId={order.id}
+                  status={order.status}
+                  paymentMethod={order.payment_method}
+                  paymentStatus={order.payment_status}
+                  shiprocketOrderId={
+                    order.shipping?.shiprocket_order_id ?? null
+                  }
+                  awbCode={order.shipping?.awb_code ?? null}
+                />
               </div>
-            ) : null}
+            </div>
 
             <div className="card">
               <div className="card-header pb-0">

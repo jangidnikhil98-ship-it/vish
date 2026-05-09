@@ -369,8 +369,9 @@ try {
   );
   await ensureSetting(
     "shiprocket_auto_create_order",
-    "1",
-    "If 1, a Shiprocket order is created automatically when our order is placed.",
+    "0",
+    "If 1, every order is auto-pushed to Shiprocket the moment it's placed/paid. " +
+      "If 0 (default), the admin clicks 'Push to Shiprocket' on the order detail page when it's ready to ship.",
   );
   await ensureSetting(
     "default_shipping_fee",
