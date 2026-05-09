@@ -20,6 +20,11 @@ export default function AdminDashboardPage() {
     { href: "/admin/products", title: "Products", icon: "stroke-ecommerce" },
     { href: "/admin/orders", title: "Orders", icon: "stroke-job-search" },
     {
+      href: "/admin/shiprocket",
+      title: "Shiprocket",
+      icon: "stroke-ecommerce",
+    },
+    {
       href: "/admin/transactions",
       title: "Transactions",
       icon: "stroke-job-search",

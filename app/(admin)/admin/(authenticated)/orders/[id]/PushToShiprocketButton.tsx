@@ -21,6 +21,8 @@ export function PushToShiprocketButton({
   paymentStatus,
   shiprocketOrderId,
   awbCode,
+  helperText = true,
+  fullWidth = true,
 }: {
   orderId: number;
   status: string;
@@ -28,6 +30,8 @@ export function PushToShiprocketButton({
   paymentStatus: string;
   shiprocketOrderId: string | null;
   awbCode: string | null;
+  helperText?: boolean;
+  fullWidth?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -102,7 +106,7 @@ export function PushToShiprocketButton({
     <div>
       <button
         type="button"
-        className="btn btn-primary w-100"
+        className={`btn btn-primary ${fullWidth ? "w-100" : ""}`}
         onClick={onClick}
         disabled={busy || !!disabledReason}
         title={disabledReason ?? undefined}
@@ -113,14 +117,15 @@ export function PushToShiprocketButton({
             ? "Re-assign AWB"
             : "Send to Shiprocket"}
       </button>
-      {disabledReason ? (
+      {helperText && disabledReason ? (
         <small className="text-muted d-block mt-2">{disabledReason}</small>
-      ) : (
+      ) : null}
+      {helperText && !disabledReason ? (
         <small className="text-muted d-block mt-2">
           Pushes the order, billing/shipping address and items to your
           Shiprocket dashboard, and tries to auto-assign an AWB.
         </small>
-      )}
+      ) : null}
       {msg ? (
         <div
           className={

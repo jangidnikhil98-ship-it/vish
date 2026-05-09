@@ -154,6 +154,25 @@ export default function AdminSidebar() {
                 </Link>
               </li>
 
+              {/* Shiprocket */}
+              <li className="sidebar-list">
+                <Link
+                  className={cls("/admin/shiprocket")}
+                  href="/admin/shiprocket"
+                >
+                  <svg className="stroke-icon">
+                    <use href="/backend/svg/icon-sprite.svg#stroke-ecommerce" />
+                  </svg>
+                  <svg className="fill-icon">
+                    <use href="/backend/svg/icon-sprite.svg#stroke-ecommerce" />
+                  </svg>
+                  <span>Shiprocket</span>
+                  <div className="according-menu">
+                    <i className="fa fa-angle-right" />
+                  </div>
+                </Link>
+              </li>
+
               {/* Transactions */}
               <li className="sidebar-list">
                 <Link

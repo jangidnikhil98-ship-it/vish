@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { readAdminSession } from "@/lib/admin-auth";
+import { isAdminRole, readAdminSession } from "@/lib/admin-auth";
 import { getUserById } from "@/lib/queries/users";
 import LoginClient from "./LoginClient";
 
@@ -15,7 +15,7 @@ export default async function AdminLoginPage() {
   const session = await readAdminSession();
   if (session) {
     const user = await getUserById(session.sub);
-    if (user && user.is_active && user.role === "admin") {
+    if (user && user.is_active && isAdminRole(user.role)) {
       redirect("/admin/dashboard");
     }
   }

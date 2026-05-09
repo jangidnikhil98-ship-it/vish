@@ -5,6 +5,7 @@ import { verifyPassword } from "@/lib/auth";
 import {
   createAdminSession,
   destroyAdminSession,
+  isAdminRole,
 } from "@/lib/admin-auth";
 import {
   getUserByEmail,
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     devLog(`user is not an admin (role=${user.role})`, email);
     return incorrect();
   }

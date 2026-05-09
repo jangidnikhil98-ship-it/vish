@@ -14,6 +14,11 @@ const COOKIE_TTL_DAYS = 7; // shorter than the customer session by design
 const SECONDS_PER_DAY = 60 * 60 * 24;
 
 const PROD = process.env.NODE_ENV === "production";
+const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+
+export function isAdminRole(role: string | null | undefined): boolean {
+  return ADMIN_ROLES.has((role ?? "").trim().toLowerCase());
+}
 
 function getSigningKey(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
@@ -91,7 +96,7 @@ export async function requireAdmin(): Promise<PublicUser> {
   if (!session) redirect("/admin/login");
 
   const user = await getUserById(session.sub);
-  if (!user || !user.is_active || user.role !== "admin") {
+  if (!user || !user.is_active || !isAdminRole(user.role)) {
     // Stale session → kill it and bounce.
     await destroyAdminSession();
     redirect("/admin/login");
@@ -118,7 +123,7 @@ export async function requireAdminApi(): Promise<
     };
   }
   const user = await getUserById(session.sub);
-  if (!user || !user.is_active || user.role !== "admin") {
+  if (!user || !user.is_active || !isAdminRole(user.role)) {
     await destroyAdminSession();
     return {
       ok: false,

@@ -26,6 +26,21 @@ export interface AdminOrderRow {
   created_at: Date | null;
 }
 
+export interface AdminShiprocketOrderRow extends AdminOrderRow {
+  shipping_name: string | null;
+  shipping_city: string | null;
+  shipping_state: string | null;
+  shipping_pincode: string | null;
+  shipping_phone: string | null;
+  shiprocket_order_id: string | null;
+  shiprocket_shipment_id: string | null;
+  awb_code: string | null;
+  courier_company_id: string | null;
+  tracking_status: string | null;
+  tracking_url: string | null;
+  is_address_ready: boolean;
+}
+
 export async function listAdminOrders(params: {
   page: number;
   perPage: number;
@@ -86,6 +101,114 @@ export async function listAdminOrders(params: {
         : null,
     created_at: r.created_at,
   }));
+
+  return buildListResult(data, Number(count), page, perPage);
+}
+
+export async function listAdminShiprocketOrders(params: {
+  page: number;
+  perPage: number;
+  keyword: string;
+}): Promise<ListResult<AdminShiprocketOrderRow>> {
+  const { page, perPage, keyword } = params;
+  const offset = (page - 1) * perPage;
+
+  const whereParts = [];
+  if (keyword) {
+    const term = `%${keyword}%`;
+    whereParts.push(
+      or(
+        like(orders.order_number, term),
+        like(users.first_name, term),
+        like(users.last_name, term),
+        like(users.email, term),
+        like(shippingDetails.first_name, term),
+        like(shippingDetails.last_name, term),
+        like(shippingDetails.phone, term),
+        like(shippingDetails.pincode, term),
+        like(shippingDetails.awb_code, term),
+      )!,
+    );
+  }
+  const whereExpr = whereParts.length ? and(...whereParts) : undefined;
+
+  const rows = await db
+    .select({
+      id: orders.id,
+      order_number: orders.order_number,
+      status: orders.status,
+      payment_status: orders.payment_status,
+      grand_total: orders.grand_total,
+      payment_method: orders.payment_method,
+      first_name: users.first_name,
+      last_name: users.last_name,
+      created_at: orders.created_at,
+      shipping_first_name: shippingDetails.first_name,
+      shipping_last_name: shippingDetails.last_name,
+      shipping_city: shippingDetails.city,
+      shipping_state: shippingDetails.state,
+      shipping_pincode: shippingDetails.pincode,
+      shipping_phone: shippingDetails.phone,
+      shipping_address: shippingDetails.address,
+      shiprocket_order_id: shippingDetails.shiprocket_order_id,
+      shiprocket_shipment_id: shippingDetails.shiprocket_shipment_id,
+      awb_code: shippingDetails.awb_code,
+      courier_company_id: shippingDetails.courier_company_id,
+      tracking_status: shippingDetails.tracking_status,
+      tracking_url: shippingDetails.tracking_url,
+    })
+    .from(orders)
+    .leftJoin(users, eq(users.id, orders.user_id))
+    .leftJoin(shippingDetails, eq(shippingDetails.order_id, orders.id))
+    .where(whereExpr)
+    .orderBy(desc(orders.id))
+    .limit(perPage)
+    .offset(offset);
+
+  const [{ count } = { count: 0 }] = await db
+    .select({ count: sql<number>`COUNT(DISTINCT ${orders.id})` })
+    .from(orders)
+    .leftJoin(users, eq(users.id, orders.user_id))
+    .leftJoin(shippingDetails, eq(shippingDetails.order_id, orders.id))
+    .where(whereExpr);
+
+  const data: AdminShiprocketOrderRow[] = rows.map((r) => {
+    const shippingName =
+      r.shipping_first_name || r.shipping_last_name
+        ? `${r.shipping_first_name ?? ""} ${r.shipping_last_name ?? ""}`.trim()
+        : null;
+
+    return {
+      id: r.id,
+      order_number: r.order_number,
+      status: r.status,
+      payment_status: r.payment_status,
+      grand_total: r.grand_total,
+      payment_method: r.payment_method ?? "razorpay",
+      buyer_name:
+        r.first_name || r.last_name
+          ? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()
+          : null,
+      created_at: r.created_at,
+      shipping_name: shippingName,
+      shipping_city: r.shipping_city,
+      shipping_state: r.shipping_state,
+      shipping_pincode: r.shipping_pincode,
+      shipping_phone: r.shipping_phone,
+      shiprocket_order_id: r.shiprocket_order_id,
+      shiprocket_shipment_id: r.shiprocket_shipment_id,
+      awb_code: r.awb_code,
+      courier_company_id: r.courier_company_id,
+      tracking_status: r.tracking_status,
+      tracking_url: r.tracking_url,
+      is_address_ready: Boolean(
+        r.shipping_address &&
+          r.shipping_city &&
+          r.shipping_pincode &&
+          r.shipping_phone,
+      ),
+    };
+  });
 
   return buildListResult(data, Number(count), page, perPage);
 }
