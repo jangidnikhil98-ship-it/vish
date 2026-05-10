@@ -5,7 +5,10 @@ import { listProducts } from "@/lib/queries/products";
 // ISR: page is cached at the edge and re-rendered every 60s. The actual
 // DB queries are already wrapped in `unstable_cache`, so this just unlocks
 // edge caching of the rendered HTML for every visitor.
-export const revalidate = 60;
+// IMPORTANT: force runtime rendering. On shared hosting the DB env vars are
+// often unavailable during `next build`, which can freeze this page with an
+// empty bestseller section in the prerendered HTML.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Vishwakarma Gifts — Personalized Wooden Engraved Gifts in India",

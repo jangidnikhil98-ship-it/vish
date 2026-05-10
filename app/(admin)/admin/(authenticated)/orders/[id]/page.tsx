@@ -20,6 +20,13 @@ function inr(value: string | number | null): string {
   });
 }
 
+function resolveCustomizationImage(path: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  if (path.startsWith("/")) return path;
+  return `/storage/${path}`;
+}
+
 interface Props {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ success?: string; error?: string }>;
@@ -114,6 +121,81 @@ export default async function AdminOrderViewPage({
                                   {item.back_text ? (
                                     <div className="small text-muted">
                                       Back: {item.back_text}
+                                    </div>
+                                  ) : null}
+                                  {item.front_image || item.back_image ? (
+                                    <div className="mt-2">
+                                      <div className="small fw-semibold mb-1">
+                                        Customization
+                                      </div>
+
+                                      {item.front_image ? (
+                                        <div className="mb-2">
+                                          <div className="small text-muted">
+                                            Front Image
+                                          </div>
+                                          <div className="d-flex align-items-center gap-2 flex-wrap">
+                                            <a
+                                              href={resolveCustomizationImage(item.front_image) ?? "#"}
+                                              target="_blank"
+                                              rel="noreferrer noopener"
+                                            >
+                                              <img
+                                                src={resolveCustomizationImage(item.front_image) ?? ""}
+                                                alt={`${item.product_name ?? "Product"} front customization`}
+                                                style={{
+                                                  width: 64,
+                                                  height: 64,
+                                                  objectFit: "cover",
+                                                  borderRadius: 6,
+                                                  border: "1px solid #ddd",
+                                                }}
+                                              />
+                                            </a>
+                                            <a
+                                              href={resolveCustomizationImage(item.front_image) ?? "#"}
+                                              download
+                                              className="btn btn-outline-primary btn-xs"
+                                            >
+                                              Download Front
+                                            </a>
+                                          </div>
+                                        </div>
+                                      ) : null}
+
+                                      {item.back_image ? (
+                                        <div>
+                                          <div className="small text-muted">
+                                            Back Image
+                                          </div>
+                                          <div className="d-flex align-items-center gap-2 flex-wrap">
+                                            <a
+                                              href={resolveCustomizationImage(item.back_image) ?? "#"}
+                                              target="_blank"
+                                              rel="noreferrer noopener"
+                                            >
+                                              <img
+                                                src={resolveCustomizationImage(item.back_image) ?? ""}
+                                                alt={`${item.product_name ?? "Product"} back customization`}
+                                                style={{
+                                                  width: 64,
+                                                  height: 64,
+                                                  objectFit: "cover",
+                                                  borderRadius: 6,
+                                                  border: "1px solid #ddd",
+                                                }}
+                                              />
+                                            </a>
+                                            <a
+                                              href={resolveCustomizationImage(item.back_image) ?? "#"}
+                                              download
+                                              className="btn btn-outline-primary btn-xs"
+                                            >
+                                              Download Back
+                                            </a>
+                                          </div>
+                                        </div>
+                                      ) : null}
                                     </div>
                                   ) : null}
                                 </div>
