@@ -62,20 +62,6 @@ const toNumber = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const defaultSizePriceSql = sql<string>`(
-  SELECT ps.price FROM ${productSizes} ps
-  WHERE ps.product_id = ${products.id}
-  ORDER BY ps.is_default DESC, ps.id ASC
-  LIMIT 1
-)`;
-
-const defaultSizeFinalPriceSql = sql<string>`(
-  SELECT ps.final_price FROM ${productSizes} ps
-  WHERE ps.product_id = ${products.id}
-  ORDER BY ps.is_default DESC, ps.id ASC
-  LIMIT 1
-)`;
-
 /**
  * Fetch the preview image url for a set of product ids in a single
  * batched query, then return a Map keyed by product id.
@@ -112,6 +98,46 @@ async function fetchPreviewImages(
     if (!map.has(row.product_id)) map.set(row.product_id, row.image_url);
   }
   return map;
+}
+
+async function fetchDefaultPrices(
+  ids: ReadonlyArray<number>,
+): Promise<Map<number, { price: number; finalPrice: number }>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      product_id: productSizes.product_id,
+      price: productSizes.price,
+      finalPrice: productSizes.final_price,
+    })
+    .from(productSizes)
+    .where(inArray(productSizes.product_id, ids as number[]))
+    .orderBy(productSizes.product_id, desc(productSizes.is_default), productSizes.id);
+
+  const map = new Map<number, { price: number; finalPrice: number }>();
+  for (const row of rows) {
+    if (row.product_id == null || map.has(row.product_id)) continue;
+    map.set(row.product_id, {
+      price: toNumber(row.price),
+      finalPrice: toNumber(row.finalPrice),
+    });
+  }
+  return map;
+}
+
+function cardPrices(
+  row: { id: number; basePrice: string | null; baseDiscount: number | null },
+  sizePrices: Map<number, { price: number; finalPrice: number }>,
+): { price: number; finalPrice: number } {
+  const size = sizePrices.get(row.id);
+  if (size && size.finalPrice > 0) return size;
+
+  const price = toNumber(row.basePrice);
+  const discount = toNumber(row.baseDiscount);
+  return {
+    price,
+    finalPrice: Math.max(0, price - (price * discount) / 100),
+  };
 }
 
 // NOTE: Every public storefront query must add BOTH:
@@ -151,8 +177,8 @@ export const listProducts = cached(
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        price: defaultSizePriceSql,
-        finalPrice: defaultSizeFinalPriceSql,
+        basePrice: products.price,
+        baseDiscount: products.discount,
       })
       .from(products)
       .where(whereExpr)
@@ -167,17 +193,24 @@ export const listProducts = cached(
 
     const total = Number(count);
 
-    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+    const ids = baseRows.map((r) => r.id);
+    const [previews, prices] = await Promise.all([
+      fetchPreviewImages(ids),
+      fetchDefaultPrices(ids),
+    ]);
 
     return {
-      data: baseRows.map((r) => ({
-        id: r.id,
-        slug: r.slug,
-        name: r.name,
-        image: previews.get(r.id) ?? null,
-        price: toNumber(r.price),
-        finalPrice: toNumber(r.finalPrice),
-      })),
+      data: baseRows.map((r) => {
+        const p = cardPrices(r, prices);
+        return {
+          id: r.id,
+          slug: r.slug,
+          name: r.name,
+          image: previews.get(r.id) ?? null,
+          price: p.price,
+          finalPrice: p.finalPrice,
+        };
+      }),
       page,
       perPage,
       total,
@@ -315,8 +348,8 @@ export const getRelatedProducts = cached(
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        price: defaultSizePriceSql,
-        finalPrice: defaultSizeFinalPriceSql,
+        basePrice: products.price,
+        baseDiscount: products.discount,
       })
       .from(products)
       .where(
@@ -329,16 +362,23 @@ export const getRelatedProducts = cached(
       .orderBy(sql`RAND()`)
       .limit(Number(limit));
 
-    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+    const ids = baseRows.map((r) => r.id);
+    const [previews, prices] = await Promise.all([
+      fetchPreviewImages(ids),
+      fetchDefaultPrices(ids),
+    ]);
 
-    return baseRows.map((r) => ({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      image: previews.get(r.id) ?? null,
-      price: toNumber(r.price),
-      finalPrice: toNumber(r.finalPrice),
-    }));
+    return baseRows.map((r) => {
+      const p = cardPrices(r, prices);
+      return {
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        image: previews.get(r.id) ?? null,
+        price: p.price,
+        finalPrice: p.finalPrice,
+      };
+    });
   },
   {
     keyParts: ["products:related"],
@@ -358,8 +398,8 @@ export const searchProducts = cached(
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        price: defaultSizePriceSql,
-        finalPrice: defaultSizeFinalPriceSql,
+        basePrice: products.price,
+        baseDiscount: products.discount,
       })
       .from(products)
       .where(
@@ -375,16 +415,23 @@ export const searchProducts = cached(
       .orderBy(desc(products.id))
       .limit(Number(limit));
 
-    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+    const ids = baseRows.map((r) => r.id);
+    const [previews, prices] = await Promise.all([
+      fetchPreviewImages(ids),
+      fetchDefaultPrices(ids),
+    ]);
 
-    return baseRows.map((r) => ({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      image: previews.get(r.id) ?? null,
-      price: toNumber(r.price),
-      finalPrice: toNumber(r.finalPrice),
-    }));
+    return baseRows.map((r) => {
+      const p = cardPrices(r, prices);
+      return {
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        image: previews.get(r.id) ?? null,
+        price: p.price,
+        finalPrice: p.finalPrice,
+      };
+    });
   },
   {
     keyParts: ["products:search"],
@@ -403,24 +450,31 @@ export const getBestsellers = cached(
         id: products.id,
         slug: products.product_name_slug,
         name: products.product_name,
-        price: defaultSizePriceSql,
-        finalPrice: defaultSizeFinalPriceSql,
+        basePrice: products.price,
+        baseDiscount: products.discount,
       })
       .from(products)
       .where(and(eq(products.status, "active"), isNull(products.deleted_at)))
       .orderBy(desc(products.id))
       .limit(Number(limit));
 
-    const previews = await fetchPreviewImages(baseRows.map((r) => r.id));
+    const ids = baseRows.map((r) => r.id);
+    const [previews, prices] = await Promise.all([
+      fetchPreviewImages(ids),
+      fetchDefaultPrices(ids),
+    ]);
 
-    return baseRows.map((r) => ({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      image: previews.get(r.id) ?? null,
-      price: toNumber(r.price),
-      finalPrice: toNumber(r.finalPrice),
-    }));
+    return baseRows.map((r) => {
+      const p = cardPrices(r, prices);
+      return {
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        image: previews.get(r.id) ?? null,
+        price: p.price,
+        finalPrice: p.finalPrice,
+      };
+    });
   },
   {
     keyParts: ["products:bestsellers"],
