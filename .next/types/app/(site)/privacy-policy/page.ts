@@ -1,4 +1,4 @@
-// File: E:\vish-main\vish-main\app\(site)\privacy-policy\page.tsx
+// File: D:\vishwakarmagifts\app\(site)\privacy-policy\page.tsx
 import * as entry from '../../../../../app/(site)/privacy-policy/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

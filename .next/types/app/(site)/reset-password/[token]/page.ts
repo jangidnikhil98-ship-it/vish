@@ -1,4 +1,4 @@
-// File: E:\vish-main\vish-main\app\(site)\reset-password\[token]\page.tsx
+// File: D:\vishwakarmagifts\app\(site)\reset-password\[token]\page.tsx
 import * as entry from '../../../../../../app/(site)/reset-password/[token]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

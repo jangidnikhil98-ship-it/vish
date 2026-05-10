@@ -244,6 +244,14 @@
       "namedRegex": "^/api/admin/orders/(?<nxtPid>[^/]+?)/mark\\-paid(?:/)?$"
     },
     {
+      "page": "/api/admin/orders/[id]/push-shiprocket",
+      "regex": "^/api/admin/orders/([^/]+?)/push\\-shiprocket(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/orders/(?<nxtPid>[^/]+?)/push\\-shiprocket(?:/)?$"
+    },
+    {
       "page": "/api/admin/orders/[id]/status",
       "regex": "^/api/admin/orders/([^/]+?)/status(?:/)?$",
       "routeKeys": {
@@ -452,6 +460,12 @@
       "regex": "^/admin/settings(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/admin/settings(?:/)?$"
+    },
+    {
+      "page": "/admin/shiprocket",
+      "regex": "^/admin/shiprocket(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/shiprocket(?:/)?$"
     },
     {
       "page": "/admin/transactions",

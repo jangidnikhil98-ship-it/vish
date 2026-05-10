@@ -4,7 +4,7 @@
     "env": {},
     "webpack": null,
     "typescript": {
-      "ignoreBuildErrors": false
+      "ignoreBuildErrors": true
     },
     "typedRoutes": false,
     "distDir": ".next",
@@ -113,7 +113,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "E:\\vish-main\\vish-main",
+    "outputFileTracingRoot": "D:\\vishwakarmagifts",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -201,6 +201,7 @@
       "parallelServerBuildTraces": false,
       "ppr": false,
       "authInterrupts": false,
+      "webpackBuildWorker": false,
       "webpackMemoryOptimizations": false,
       "optimizeServerReact": true,
       "strictRouteTypes": false,
@@ -313,11 +314,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "E:\\vish-main\\vish-main"
+      "root": "D:\\vishwakarmagifts"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "E:\\vish-main\\vish-main",
+  "appDir": "D:\\vishwakarmagifts",
   "relativeAppDir": "",
   "files": [
     ".next\\routes-manifest.json",

@@ -1,4 +1,4 @@
-// File: E:\vish-main\vish-main\app\(admin)\admin\page.tsx
+// File: D:\vishwakarmagifts\app\(admin)\admin\page.tsx
 import * as entry from '../../../../../app/(admin)/admin/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

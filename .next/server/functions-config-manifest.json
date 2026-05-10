@@ -23,6 +23,7 @@
     "/api/admin/inquiries/[id]": {},
     "/api/admin/orders/[id]": {},
     "/api/admin/orders/[id]/mark-paid": {},
+    "/api/admin/orders/[id]/push-shiprocket": {},
     "/api/admin/orders/[id]/status": {},
     "/api/admin/products": {},
     "/api/admin/products/[id]": {},

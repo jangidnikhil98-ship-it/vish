@@ -1,4 +1,4 @@
-// File: E:\vish-main\vish-main\app\(site)\dashboard\layout.tsx
+// File: D:\vishwakarmagifts\app\(site)\dashboard\layout.tsx
 import * as entry from '../../../../../app/(site)/dashboard/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -1,4 +1,4 @@
-// File: E:\vish-main\vish-main\app\api\upload\product-image\route.ts
+// File: D:\vishwakarmagifts\app\api\upload\product-image\route.ts
 import * as entry from '../../../../../../app/api/upload/product-image/route.js'
 import type { NextRequest } from 'next/server.js'
 

@@ -1,4 +1,4 @@
-// File: E:\vish-main\vish-main\app\(admin)\layout.tsx
+// File: D:\vishwakarmagifts\app\(admin)\layout.tsx
 import * as entry from '../../../../app/(admin)/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

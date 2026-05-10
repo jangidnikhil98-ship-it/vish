@@ -1,4 +1,4 @@
-// File: E:\vish-main\vish-main\app\api\auth\forgot-password\route.ts
+// File: D:\vishwakarmagifts\app\api\auth\forgot-password\route.ts
 import * as entry from '../../../../../../app/api/auth/forgot-password/route.js'
 import type { NextRequest } from 'next/server.js'
 

@@ -12,5 +12,5 @@ Disallow: /forgot-password
 Disallow: /reset-password/
 Disallow: /order/success
 
-Host: https://vishwakarmagifts.com
-Sitemap: https://vishwakarmagifts.com/sitemap.xml
+Host: http://localhost:3000
+Sitemap: http://localhost:3000/sitemap.xml
