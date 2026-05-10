@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import HomePage from "@/app/components/HomePage";
-import { getBestsellers, type ProductCard } from "@/lib/queries/products";
+import { listProducts } from "@/lib/queries/products";
 
 // ISR: page is cached at the edge and re-rendered every 60s. The actual
 // DB queries are already wrapped in `unstable_cache`, so this just unlocks
@@ -30,7 +30,8 @@ const resolveImage = (img: string | null): string => {
 
 export default async function Home() {
   let bestsellers: Array<{
-    slug: string;
+    id: number;
+    slug: string | null;
     name: string;
     image: string;
     price: number;
@@ -38,16 +39,15 @@ export default async function Home() {
   }> = [];
 
   try {
-    const rows: ProductCard[] = await getBestsellers(8);
-    bestsellers = rows
-      .filter((r) => r.slug)
-      .map((r) => ({
-        slug: r.slug as string,
-        name: r.name ?? "Product",
-        image: resolveImage(r.image),
-        price: r.price,
-        finalPrice: r.finalPrice,
-      }));
+    const result = await listProducts({ type: "bestseller", page: 1, perPage: 8 });
+    bestsellers = result.data.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.name ?? "Product",
+      image: resolveImage(r.image),
+      price: r.price,
+      finalPrice: r.finalPrice,
+    }));
   } catch (err) {
     console.error("[home] failed to load bestsellers:", err);
   }

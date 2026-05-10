@@ -46,7 +46,8 @@ const testimonials = [
 
 /**
  * @typedef {Object} Bestseller
- * @property {string} slug
+ * @property {number} id
+ * @property {string | null} slug
  * @property {string} name
  * @property {string} image
  * @property {number} price
@@ -593,13 +594,13 @@ export default function HomePage({ bestsellers = [] }) {
             {bestsellers.length > 0 ? (
               bestsellers.map((product, idx) => (
                 <div
-                  key={product.slug}
+                  key={product.id}
                   className="col-6 col-sm-4 col-md-3 col-lg-3"
                   data-aos="fade-up"
                   data-aos-delay={(idx % 4) * 100}
                 >
                   <div className="category-item-annivesary">
-                    <Link href={`/products/${product.slug}`}>
+                    <Link href={product.slug ? `/products/${product.slug}` : "/products?type=bestseller"}>
                       <div className="birthday-item">
                         <img
                           loading="lazy"
@@ -613,7 +614,7 @@ export default function HomePage({ bestsellers = [] }) {
                     </Link>
 
                     <div className="artificial-engvraed">
-                      <Link href={`/products/${product.slug}`}>
+                      <Link href={product.slug ? `/products/${product.slug}` : "/products?type=bestseller"}>
                         <p>{product.name}</p>
 
                         <div className="product-price">
