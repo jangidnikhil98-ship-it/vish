@@ -1,12 +1,6 @@
 import type { NextConfig } from "next";
 
-type VishNextConfig = NextConfig & {
-  eslint?: {
-    ignoreDuringBuilds?: boolean;
-  };
-};
-
-const nextConfig: VishNextConfig = {
+const nextConfig: NextConfig = {
   // Gzip responses (helps on shared hosting that doesn't compress)
   compress: true,
   // Don't expose the X-Powered-By: Next.js header
@@ -71,9 +65,6 @@ const nextConfig: VishNextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 };
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
 import Script from "next/script";
 import { AuthProvider } from "@/app/components/AuthProvider";
 import { CartProvider } from "@/app/components/CartProvider";
@@ -7,13 +6,6 @@ import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import JsonLd from "@/app/components/JsonLd";
 import "@/app/globals.css";
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins",
-  display: "swap",
-});
 
 const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
@@ -128,16 +120,23 @@ export default function SiteRootLayout({
   };
 
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en">
       <head>
         {/* Preconnect to third-party origins so the browser can start TLS
             handshakes in parallel with HTML parsing. Big perceived-perf win. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="" />
         <link rel="preconnect" href="https://ajax.googleapis.com" crossOrigin="" />
         <link rel="preconnect" href="https://unpkg.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        />
 
         {/* Critical (render-blocking) CSS — Bootstrap layout + FontAwesome
             icons need to be ready before first paint or the header layout
@@ -186,7 +185,7 @@ export default function SiteRootLayout({
         <JsonLd data={organizationJsonLd} />
         <JsonLd data={websiteJsonLd} />
       </head>
-      <body className={poppins.className}>
+      <body>
         <AuthProvider>
           <CartProvider>
             <Header />
