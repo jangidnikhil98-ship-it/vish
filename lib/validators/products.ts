@@ -9,6 +9,7 @@ export const PRODUCT_TYPES = [
   "teachers-day",
   "natural-wooden-slice",
   "rectangle-wooden-frame",
+  "corporate-gifts",
 ] as const;
 
 export type ProductType = (typeof PRODUCT_TYPES)[number];

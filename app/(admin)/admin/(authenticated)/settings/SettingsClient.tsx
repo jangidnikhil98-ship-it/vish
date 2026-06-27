@@ -328,6 +328,7 @@ const PRODUCT_TYPES_LIST = [
   { value: "teachers-day", label: "Teacher's Day" },
   { value: "natural-wooden-slice", label: "Natural Wooden Slice" },
   { value: "rectangle-wooden-frame", label: "Rectangle Wooden Frame" },
+  { value: "corporate-gifts", label: "Corporate Gifts" },
 ];
 
 function StoreSettingsForm({

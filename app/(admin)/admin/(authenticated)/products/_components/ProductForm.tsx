@@ -40,6 +40,7 @@ const PRODUCT_TYPES = [
   "Wedding",
   "Couple",
   "Family",
+  "Corporate Gifts",
   "Other",
 ];
 

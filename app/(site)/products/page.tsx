@@ -28,6 +28,7 @@ const TITLE_MAP: Record<ProductType | "default", string> = {
   bestseller: "Bestseller Wooden Gifts",
   "natural-wooden-slice": "Natural Wooden Slice Frames",
   "rectangle-wooden-frame": "Rectangle Wooden Frames",
+  "corporate-gifts": "Corporate Wooden Gifts",
   default: "All Products",
 };
 
@@ -51,6 +52,10 @@ function normaliseType(raw: string | undefined): ProductType | undefined {
     bestsellers: "bestseller",
     "natural-wooden-slice": "natural-wooden-slice",
     "rectangle-wooden-frame": "rectangle-wooden-frame",
+    "corporate-gifts": "corporate-gifts",
+    corporate: "corporate-gifts",
+    "corporate-gift": "corporate-gifts",
+    corporategifts: "corporate-gifts",
   };
   const mapped = aliases[v];
   return mapped && (PRODUCT_TYPES as readonly string[]).includes(mapped)

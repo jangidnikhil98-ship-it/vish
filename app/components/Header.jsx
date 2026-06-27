@@ -18,6 +18,7 @@ const SHOP_LINKS = [
   { label: "Teachers Day", type: "teachers-day" },
   { label: "Natural Wooden Slice", type: "natural-wooden-slice" },
   { label: "Rectangle Wooden Frame", type: "rectangle-wooden-frame" },
+  { label: "Corporate Gifts", type: "corporate-gifts" },
 ];
 
 export default function Header() {

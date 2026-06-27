@@ -165,8 +165,17 @@ export const listProducts = cached(
       } else if (type === "rectangle-wooden-frame") {
         whereParts.push(eq(products.product_for, "square"));
       } else if (type !== "bestseller") {
+        const cleanType = type.replace(/-/g, " ");
+        const formattedType = cleanType
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+
         whereParts.push(
-          like(products.product_name, `%${type.replace(/-/g, " ")}%`),
+          or(
+            eq(products.product_type, formattedType),
+            like(products.product_name, `%${cleanType}%`),
+          )!,
         );
       }
     }
