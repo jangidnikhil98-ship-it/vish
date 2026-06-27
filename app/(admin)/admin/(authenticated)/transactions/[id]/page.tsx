@@ -117,7 +117,9 @@ export default async function AdminTransactionViewPage({ params }: Props) {
                     </td>
                     <td>
                       {txn.created_at
-                        ? new Date(txn.created_at).toLocaleString()
+                        ? new Date(txn.created_at).toLocaleString("en-IN", {
+                            timeZone: "Asia/Kolkata",
+                          })
                         : "—"}
                     </td>
                   </tr>

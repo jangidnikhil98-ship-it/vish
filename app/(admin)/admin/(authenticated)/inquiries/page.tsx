@@ -86,7 +86,9 @@ export default async function AdminInquiriesPage({ searchParams }: Props) {
                   </td>
                   <td>
                     {row.created_at
-                      ? new Date(row.created_at).toLocaleString()
+                      ? new Date(row.created_at).toLocaleString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                        })
                       : "—"}
                   </td>
                   <td>

@@ -72,7 +72,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               <th>Method</th>
               <th>Order Status</th>
               <th>Payment</th>
-              <th>Placed</th>
+              <th>Order Date</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -128,7 +128,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   </td>
                   <td>
                     {o.created_at
-                      ? new Date(o.created_at).toLocaleString()
+                      ? new Date(o.created_at).toLocaleString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                        })
                       : "—"}
                   </td>
                   <td className="jsgrid-cell jsgrid-control-field jsgrid-align-center">

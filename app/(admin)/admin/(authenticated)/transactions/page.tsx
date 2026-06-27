@@ -96,7 +96,9 @@ export default async function AdminTransactionsPage({ searchParams }: Props) {
                   </td>
                   <td>
                     {t.created_at
-                      ? new Date(t.created_at).toLocaleString()
+                      ? new Date(t.created_at).toLocaleString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                        })
                       : "—"}
                   </td>
                   <td>

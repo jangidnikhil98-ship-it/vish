@@ -85,7 +85,9 @@ export default async function AdminUserViewPage({ params }: Props) {
                         </td>
                         <td>
                           {user.last_login_at
-                            ? new Date(user.last_login_at).toLocaleString()
+                            ? new Date(user.last_login_at).toLocaleString("en-IN", {
+                                timeZone: "Asia/Kolkata",
+                              })
                             : "Never"}
                         </td>
                       </tr>

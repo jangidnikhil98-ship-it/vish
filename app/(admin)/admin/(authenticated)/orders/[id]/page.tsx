@@ -79,6 +79,14 @@ export default async function AdminOrderViewPage({
                       : "💳 ONLINE"}
                   </span>
                 </h4>
+                {order.created_at ? (
+                  <p className="text-muted mt-2 mb-0 small">
+                    <strong>Placed on:</strong>{" "}
+                    {new Date(order.created_at).toLocaleString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                    })}
+                  </p>
+                ) : null}
               </div>
               <div className="card-body">
                 <div className="table-responsive custom-scrollbar">

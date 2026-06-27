@@ -100,7 +100,9 @@ export default async function AdminShiprocketPage({ searchParams }: Props) {
                       <strong>{order.order_number}</strong>
                       <div className="small text-muted">
                         {order.created_at
-                          ? new Date(order.created_at).toLocaleString()
+                          ? new Date(order.created_at).toLocaleString("en-IN", {
+                              timeZone: "Asia/Kolkata",
+                            })
                           : "No date"}
                       </div>
                     </td>
