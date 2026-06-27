@@ -268,20 +268,13 @@ export function Form({
   /* ----- validation ----- */
   const validate = (): boolean => {
     const next: Errors = {};
-    if (!frontMessage.trim())
-      next.front_message =
-        "Please enter the message you want to write on the frame.";
-    if (!frontUpload)
-      next.front_image = "Please choose the photo you want to customize.";
-    else if (frontUpload.status === "error")
+    if (frontUpload && frontUpload.status === "error") {
       next.front_image = frontUpload.error ?? "Upload failed. Please retry.";
+    }
     if (variation === "both_sides") {
-      if (!backMessage.trim())
-        next.back_message = "Please enter the back side message.";
-      if (!backUpload)
-        next.back_image = "Please choose the back side photo.";
-      else if (backUpload.status === "error")
+      if (backUpload && backUpload.status === "error") {
         next.back_image = backUpload.error ?? "Upload failed. Please retry.";
+      }
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -321,17 +314,22 @@ export function Form({
   const buildLineItem = async () => {
     if (!selectedSize) return null;
 
-    const frontPath = await resolveSlot(frontUpload, "front_image");
-    if (!frontPath) return null;
+    let frontPath = "";
+    if (frontUpload) {
+      const resolved = await resolveSlot(frontUpload, "front_image");
+      if (!resolved) return null;
+      frontPath = resolved;
+    }
 
     let backPath = "";
-    if (variation === "both_sides") {
+    if (variation === "both_sides" && backUpload) {
       const resolved = await resolveSlot(backUpload, "back_image");
       if (!resolved) return null;
       backPath = resolved;
     }
 
-    const lineId = `${productSlug}_${selectedSize.id}_${frontPath.slice(-8)}`;
+    const frontSuffix = frontPath ? frontPath.slice(-8) : "none";
+    const lineId = `${productSlug}_${selectedSize.id}_${frontSuffix}`;
     return {
       id: lineId,
       slug: productSlug,
@@ -346,8 +344,8 @@ export function Form({
       variation,
       frontMessage,
       backMessage: variation === "both_sides" ? backMessage : "",
-      frontImageUrl: frontPath,
-      backImageUrl: backPath,
+      frontImageUrl: frontPath || undefined,
+      backImageUrl: backPath || undefined,
     };
   };
 
