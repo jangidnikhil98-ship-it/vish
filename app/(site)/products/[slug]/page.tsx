@@ -12,7 +12,10 @@ import { Gallery, Form } from "./ProductDetailsClient";
 import "./product-details.css";
 
 const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.NODE_ENV === "production"
+    ? "https://vishwakarmagifts.com"
+    : "http://localhost:3000")
 ).replace(/\/$/, "");
 
 // ISR: each product page is cached at the edge for 5 minutes. Admin edits

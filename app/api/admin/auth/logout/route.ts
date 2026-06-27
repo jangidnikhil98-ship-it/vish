@@ -15,7 +15,12 @@ async function handle() {
 }
 
 function baseUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.NODE_ENV === "production"
+      ? "https://vishwakarmagifts.com"
+      : "http://localhost:3000")
+  );
 }
 
 export async function GET() {

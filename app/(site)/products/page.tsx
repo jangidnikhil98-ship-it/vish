@@ -9,7 +9,10 @@ import {
 import { PRODUCT_TYPES, type ProductType } from "@/lib/validators/products";
 
 const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.NODE_ENV === "production"
+    ? "https://vishwakarmagifts.com"
+    : "http://localhost:3000")
 ).replace(/\/$/, "");
 
 // ISR: cached HTML for 60 s. Underlying queries also cached separately.

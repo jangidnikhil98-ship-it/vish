@@ -6,7 +6,10 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 export const revalidate = 3600;
 
 const BASE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.NODE_ENV === "production"
+    ? "https://vishwakarmagifts.com"
+    : "http://localhost:3000")
 ).replace(/\/$/, "");
 
 const STATIC_ROUTES: Array<{
