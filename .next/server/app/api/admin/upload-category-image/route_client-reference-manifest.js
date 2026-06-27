@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/admin/upload-category-image/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"D:\\vishwakarmagifts\\app\\api\\admin\\upload-category-image\\route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

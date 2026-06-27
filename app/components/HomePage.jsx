@@ -57,7 +57,7 @@ const testimonials = [
 /**
  * @param {{ bestsellers?: Bestseller[] }} props
  */
-export default function HomePage({ bestsellers = [] }) {
+export default function HomePage({ bestsellers = [], newArrivals = [], categories = [] }) {
   useEffect(() => {
     let aosTries = 0;
     let owlTries = 0;
@@ -443,70 +443,25 @@ export default function HomePage({ bestsellers = [] }) {
             </h2>
           </div>
           <div className="row text-center justify-content-center g-4 category-slider">
-            <div
-              className="col-12 col-sm-4 col-md-3 col-lg-3"
-              data-aos="fade-up"
-              data-aos-duration="500"
-            >
-              <div className="category-item">
-                <Link href="/products?type=birthday">
-                  <img
-                    src="/img/brithday.webp"
-                    alt="Birthday"
-                    loading="lazy"
-                  />
-                  <p>Birthday</p>
-                </Link>
+            {categories.map((cat, idx) => (
+              <div
+                key={idx}
+                className="col-12 col-sm-4 col-md-3 col-lg-3"
+                data-aos="fade-up"
+                data-aos-duration={500 + idx * 100}
+              >
+                <div className="category-item">
+                  <Link href={`/products?type=${cat.type}`}>
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      loading="lazy"
+                    />
+                    <p>{cat.name}</p>
+                  </Link>
+                </div>
               </div>
-            </div>
-            <div
-              className="col-12 col-sm-4 col-md-3 col-lg-3"
-              data-aos="fade-up"
-              data-aos-duration="600"
-            >
-              <div className="category-item">
-                <Link href="/products?type=bestseller">
-                  <img
-                    src="/img/manichurimage.webp"
-                    alt="Miniature Frame"
-                    loading="lazy"
-                  />
-                  <p>Miniature Frame</p>
-                </Link>
-              </div>
-            </div>
-            <div
-              className="col-12 col-sm-4 col-md-3 col-lg-3"
-              data-aos="fade-up"
-              data-aos-duration="700"
-            >
-              <div className="category-item">
-                <Link href="/products?type=wedding-anniversary">
-                  <img
-                    src="/img/anniversyimag.webp"
-                    alt="Wedding & Anniversary"
-                    loading="lazy"
-                  />
-                  <p>Wedding &amp; Anniversary</p>
-                </Link>
-              </div>
-            </div>
-            <div
-              className="col-12 col-sm-4 col-md-3 col-lg-3"
-              data-aos="fade-up"
-              data-aos-duration="800"
-            >
-              <div className="category-item">
-                <Link href="/products?type=mothers-day">
-                  <img
-                    src="/img/gift-image.webp"
-                    alt="Mother's Day"
-                    loading="lazy"
-                  />
-                  <p>Mother&apos;s Day</p>
-                </Link>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -569,6 +524,68 @@ export default function HomePage({ bestsellers = [] }) {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NEW ARRIVALS */}
+      <section className="category-section Bestsaller_section py-5">
+        <div className="container">
+          <div
+            className="our-catgery-heading alltimebest"
+            data-aos="fade-up"
+            data-aos-duration="700"
+          >
+            <h2>
+              New Arrivals <span></span>
+            </h2>
+
+            <Link href="/products" className="view-all-btn">
+              View All Products
+            </Link>
+          </div>
+
+          <div className="row text-center justify-content-center g-4">
+            {newArrivals.length > 0 ? (
+              newArrivals.map((product, idx) => (
+                <div
+                  key={product.id}
+                  className="col-6 col-sm-4 col-md-3 col-lg-3"
+                  data-aos="fade-up"
+                  data-aos-delay={(idx % 4) * 100}
+                >
+                  <div className="category-item-annivesary">
+                    <Link href={product.slug ? `/products/${product.slug}` : "/products"}>
+                      <div className="birthday-item">
+                        <img
+                          loading="lazy"
+                          src={product.image}
+                          className="default-img"
+                          alt={product.name}
+                          width="300"
+                          height="300"
+                        />
+                      </div>
+                    </Link>
+
+                    <div className="artificial-engvraed">
+                      <Link href={product.slug ? `/products/${product.slug}` : "/products"}>
+                        <p>{product.name}</p>
+
+                        <div className="product-price">
+                          <h2>₹{formatINR(product.finalPrice)}</h2>
+                          {product.price && product.price > product.finalPrice ? (
+                            <h6>₹{formatINR(product.price)}</h6>
+                          ) : null}
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p>No products found.</p>
+            )}
           </div>
         </div>
       </section>

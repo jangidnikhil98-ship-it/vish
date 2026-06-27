@@ -28,6 +28,12 @@ export const SETTING_DEFAULTS = {
   // page when it's actually ready to ship. Flip to "1" to push every order
   // to Shiprocket automatically the moment payment lands (or COD is placed).
   shiprocket_auto_create_order: "0",
+  home_categories: JSON.stringify([
+    { name: "Birthday", type: "birthday", image: "/img/brithday.webp" },
+    { name: "Miniature Frame", type: "bestseller", image: "/img/manichurimage.webp" },
+    { name: "Wedding & Anniversary", type: "wedding-anniversary", image: "/img/anniversyimag.webp" },
+    { name: "Mother's Day", type: "mothers-day", image: "/img/gift-image.webp" }
+  ]),
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;

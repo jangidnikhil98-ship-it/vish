@@ -528,6 +528,12 @@
       "namedRegex": "^/api/admin/settings/store(?:/)?$"
     },
     {
+      "page": "/api/admin/upload-category-image",
+      "regex": "^/api/admin/upload\\-category\\-image(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/upload\\-category\\-image(?:/)?$"
+    },
+    {
       "page": "/api/auth/forgot-password",
       "regex": "^/api/auth/forgot\\-password(?:/)?$",
       "routeKeys": {},

@@ -32,6 +32,7 @@
     "/api/admin/settings/password": {},
     "/api/admin/settings/profile": {},
     "/api/admin/settings/store": {},
+    "/api/admin/upload-category-image": {},
     "/api/admin/users/[id]": {},
     "/api/admin/users/[id]/status": {},
     "/api/auth/forgot-password": {},

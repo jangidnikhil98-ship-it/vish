@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { getSetting } from "@/lib/queries/admin/settings";
+
 const resolveImage = (img: string | null): string => {
   if (!img) return "/img/no-image.png";
   if (img.startsWith("http") || img.startsWith("/")) return img;
@@ -41,8 +43,24 @@ export default async function Home() {
     finalPrice: number;
   }> = [];
 
+  let newArrivals: Array<{
+    id: number;
+    slug: string | null;
+    name: string;
+    image: string;
+    price: number;
+    finalPrice: number;
+  }> = [];
+
+  let categories: Array<{ name: string; type: string; image: string }> = [];
+
   try {
-    const result = await listProducts({ type: "bestseller", page: 1, perPage: 8 });
+    const [result, resultNew, catsStr] = await Promise.all([
+      listProducts({ type: "bestseller", page: 1, perPage: 8 }),
+      listProducts({ page: 1, perPage: 8 }),
+      getSetting("home_categories"),
+    ]);
+
     bestsellers = result.data.map((r) => ({
       id: r.id,
       slug: r.slug,
@@ -51,8 +69,19 @@ export default async function Home() {
       price: r.price,
       finalPrice: r.finalPrice,
     }));
+
+    newArrivals = resultNew.data.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.name ?? "Product",
+      image: resolveImage(r.image),
+      price: r.price,
+      finalPrice: r.finalPrice,
+    }));
+
+    categories = JSON.parse(catsStr || "[]");
   } catch (err) {
-    console.error("[home] failed to load bestsellers:", err);
+    console.error("[home] failed to load bestsellers/newArrivals/categories:", err);
   }
 
   return (
@@ -65,7 +94,7 @@ export default async function Home() {
         href="/img/banner.webp"
         fetchPriority="high"
       />
-      <HomePage bestsellers={bestsellers} />
+      <HomePage bestsellers={bestsellers} newArrivals={newArrivals} categories={categories} />
     </>
   );
 }

@@ -22,6 +22,7 @@ interface StoreSettings {
   shiprocket_default_breadth_cm: string;
   shiprocket_default_height_cm: string;
   shiprocket_auto_create_order: string;
+  home_categories: string;
 }
 
 export function SettingsClient({
@@ -312,6 +313,23 @@ function PasswordForm() {
 /*  Store settings (COD fee, Shiprocket pickup, etc.)                       */
 /* ----------------------------------------------------------------------- */
 
+interface CategoryItem {
+  name: string;
+  type: string;
+  image: string;
+}
+
+const PRODUCT_TYPES_LIST = [
+  { value: "bestseller", label: "Bestseller (Miniature Frame)" },
+  { value: "birthday", label: "Birthday" },
+  { value: "wedding-anniversary", label: "Wedding & Anniversary" },
+  { value: "mothers-day", label: "Mother's Day" },
+  { value: "fathers-day", label: "Father's Day" },
+  { value: "teachers-day", label: "Teacher's Day" },
+  { value: "natural-wooden-slice", label: "Natural Wooden Slice" },
+  { value: "rectangle-wooden-frame", label: "Rectangle Wooden Frame" },
+];
+
 function StoreSettingsForm({
   initial,
   onSaved,
@@ -324,6 +342,76 @@ function StoreSettingsForm({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [topErr, setTopErr] = useState<string | null>(null);
+
+  const [categories, setCategories] = useState<CategoryItem[]>(() => {
+    try {
+      return JSON.parse(form.home_categories || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const updateCategories = (newCats: CategoryItem[]) => {
+    setCategories(newCats);
+    setForm((p) => ({ ...p, home_categories: JSON.stringify(newCats) }));
+  };
+
+  const handleNameChange = (idx: number, name: string) => {
+    const next = [...categories];
+    next[idx] = { ...next[idx], name };
+    updateCategories(next);
+  };
+
+  const handleTypeChange = (idx: number, type: string) => {
+    const next = [...categories];
+    next[idx] = { ...next[idx], type };
+    updateCategories(next);
+  };
+
+  const handleImageUpload = async (idx: number, file: File) => {
+    const fd = new FormData();
+    fd.append("image", file);
+    try {
+      const res = await fetch("/api/admin/upload-category-image", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const next = [...categories];
+        next[idx] = { ...next[idx], image: data.data.url };
+        updateCategories(next);
+      } else {
+        alert(data.message || "Failed to upload image.");
+      }
+    } catch (e) {
+      alert("Error uploading image.");
+    }
+  };
+
+  const moveCat = (idx: number, dir: -1 | 1) => {
+    const next = [...categories];
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= next.length) return;
+    const temp = next[idx];
+    next[idx] = next[targetIdx];
+    next[targetIdx] = temp;
+    updateCategories(next);
+  };
+
+  const addCategory = () => {
+    const next = [
+      ...categories,
+      { name: "New Category", type: "birthday", image: "/img/brithday.webp" },
+    ];
+    updateCategories(next);
+  };
+
+  const deleteCategory = (idx: number) => {
+    if (!confirm("Are you sure you want to remove this category?")) return;
+    const next = categories.filter((_, i) => i !== idx);
+    updateCategories(next);
+  };
 
   const update = (key: keyof StoreSettings, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -355,6 +443,7 @@ function StoreSettingsForm({
           shiprocket_auto_create_order: Number(
             form.shiprocket_auto_create_order,
           ),
+          home_categories: form.home_categories,
         }),
       });
       const data = await res.json();
@@ -578,7 +667,113 @@ function StoreSettingsForm({
             />
           </div>
 
-          <div className="col-12 d-flex gap-2 mt-3">
+          {/* ---- Categories section ---- */}
+          <div className="col-12 mt-4 pt-3 border-top">
+            <h6 className="mb-2">Homepage Category Cards</h6>
+            <p className="text-muted small">
+              These cards are displayed in the "Our Category" section on the homepage. You can upload custom images, change display names, choose product filters, and re-order them.
+            </p>
+          </div>
+
+          <div className="col-12">
+            <div className="row g-3">
+              {categories.map((cat, idx) => (
+                <div key={idx} className="col-md-6 col-lg-4">
+                  <div className="card h-100 border p-3">
+                    <div className="d-flex align-items-center gap-3 mb-3">
+                      <div className="position-relative" style={{ width: 64, height: 64, flexShrink: 0 }}>
+                        <img
+                          src={cat.image}
+                          alt={cat.name}
+                          className="img-fluid rounded border"
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      </div>
+                      <div className="flex-grow-1">
+                        <label className="form-label mb-1 small fw-semibold">Upload Image</label>
+                        <input
+                          type="file"
+                          className="form-control form-control-sm"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(idx, file);
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mb-2">
+                      <label className="form-label mb-1 small fw-semibold">Display Name</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={cat.name}
+                        onChange={(e) => handleNameChange(idx, e.target.value)}
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label mb-1 small fw-semibold">Link Type / Filter</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={cat.type}
+                        onChange={(e) => handleTypeChange(idx, e.target.value)}
+                      >
+                        {PRODUCT_TYPES_LIST.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="d-flex justify-content-between mt-auto pt-2 border-top">
+                      <div className="d-flex gap-1">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-xs px-2"
+                          onClick={() => moveCat(idx, -1)}
+                          disabled={idx === 0}
+                          title="Move Left/Up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-xs px-2"
+                          onClick={() => moveCat(idx, 1)}
+                          disabled={idx === categories.length - 1}
+                          title="Move Right/Down"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger btn-xs px-2"
+                        onClick={() => deleteCategory(idx)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="col-12 mt-3">
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={addCategory}
+                >
+                  + Add Category Card
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-12 d-flex gap-2 mt-4 pt-3 border-top">
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? "Saving…" : "Save Store Settings"}
             </button>

@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       shiprocket_default_breadth_cm: String(parsed.shiprocket_default_breadth_cm),
       shiprocket_default_height_cm: String(parsed.shiprocket_default_height_cm),
       shiprocket_auto_create_order: String(parsed.shiprocket_auto_create_order),
+      home_categories: parsed.home_categories !== undefined ? String(parsed.home_categories) : undefined,
     });
 
     return ok({ message: "Store settings updated successfully." });
