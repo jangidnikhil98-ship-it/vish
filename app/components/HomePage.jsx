@@ -273,14 +273,21 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
                       <div className="carousel-caption ">
                         <span>{b.span}</span>
                         <h5>
-                          {b.title.split(/\\n|\n/).map((line, lineIdx) => (
+                          {b.title.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
                             <span key={lineIdx}>
                               {line}
-                              {lineIdx < b.title.split(/\\n|\n/).length - 1 && <br />}
+                              {lineIdx < b.title.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
                             </span>
                           ))}
                         </h5>
-                        <p>{b.description}</p>
+                        <p>
+                          {b.description.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
+                            <span key={lineIdx}>
+                              {line}
+                              {lineIdx < b.description.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
+                            </span>
+                          ))}
+                        </p>
                         <Link href={b.link} className="hero-shop-btn">
                           <button>Shop Now</button>
                         </Link>
