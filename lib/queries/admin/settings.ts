@@ -34,6 +34,22 @@ export const SETTING_DEFAULTS = {
     { name: "Wedding & Anniversary", type: "wedding-anniversary", image: "/img/anniversyimag.webp" },
     { name: "Mother's Day", type: "mothers-day", image: "/img/gift-image.webp" }
   ]),
+  home_banners: JSON.stringify([
+    {
+      image: "/img/banner.webp",
+      span: "Choose the Perfect Personalized Wooden Gifts",
+      title: "Create lasting memories with custom \n wooden engraved gifts",
+      description: "Shop beautifully handcrafted personalized wooden photo frames, plaques, and unique gifts for birthdays, weddings, anniversaries, and special occasions.",
+      link: "/products/customizable-engraved-on-wood-photo-frame-round-shape"
+    },
+    {
+      image: "/img/banner2.webp",
+      span: "Premium Personalized Corporate Gifting Solutions",
+      title: "Custom Engraved Corporate \n Gift Sets",
+      description: "Impress your clients and team with custom-branded smart bottles, executive diaries, keychains, and pens tailored to reflect your brand's professionalism.",
+      link: "/products?type=corporate-gifts"
+    }
+  ]),
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;

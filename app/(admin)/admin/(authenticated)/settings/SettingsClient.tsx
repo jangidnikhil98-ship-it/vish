@@ -23,6 +23,7 @@ interface StoreSettings {
   shiprocket_default_height_cm: string;
   shiprocket_auto_create_order: string;
   home_categories: string;
+  home_banners: string;
 }
 
 export function SettingsClient({
@@ -352,6 +353,84 @@ function StoreSettingsForm({
     }
   });
 
+  interface BannerItem {
+    image: string;
+    span: string;
+    title: string;
+    description: string;
+    link: string;
+  }
+
+  const [banners, setBanners] = useState<BannerItem[]>(() => {
+    try {
+      return JSON.parse(form.home_banners || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const updateBanners = (newBans: BannerItem[]) => {
+    setBanners(newBans);
+    setForm((p) => ({ ...p, home_banners: JSON.stringify(newBans) }));
+  };
+
+  const handleBannerFieldChange = (idx: number, key: keyof BannerItem, val: string) => {
+    const next = [...banners];
+    next[idx] = { ...next[idx], [key]: val };
+    updateBanners(next);
+  };
+
+  const handleBannerImageUpload = async (idx: number, file: File) => {
+    const fd = new FormData();
+    fd.append("image", file);
+    try {
+      const res = await fetch("/api/admin/upload-category-image", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const next = [...banners];
+        next[idx] = { ...next[idx], image: data.data.url };
+        updateBanners(next);
+      } else {
+        alert(data.message || "Failed to upload image.");
+      }
+    } catch (e) {
+      alert("Error uploading image.");
+    }
+  };
+
+  const moveBanner = (idx: number, dir: -1 | 1) => {
+    const next = [...banners];
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= next.length) return;
+    const temp = next[idx];
+    next[idx] = next[targetIdx];
+    next[targetIdx] = temp;
+    updateBanners(next);
+  };
+
+  const addBanner = () => {
+    const next = [
+      ...banners,
+      {
+        image: "/img/banner.webp",
+        span: "New Banner Subtitle",
+        title: "New Banner Title",
+        description: "New Banner Description text",
+        link: "/products"
+      },
+    ];
+    updateBanners(next);
+  };
+
+  const deleteBanner = (idx: number) => {
+    if (!confirm("Are you sure you want to remove this banner?")) return;
+    const next = banners.filter((_, i) => i !== idx);
+    updateBanners(next);
+  };
+
   const updateCategories = (newCats: CategoryItem[]) => {
     setCategories(newCats);
     setForm((p) => ({ ...p, home_categories: JSON.stringify(newCats) }));
@@ -445,6 +524,7 @@ function StoreSettingsForm({
             form.shiprocket_auto_create_order,
           ),
           home_categories: form.home_categories,
+          home_banners: form.home_banners,
         }),
       });
       const data = await res.json();
@@ -764,11 +844,137 @@ function StoreSettingsForm({
 
               <div className="col-12 mt-3">
                 <button
-                  type="button"
-                  className="btn btn-outline-primary btn-sm"
-                  onClick={addCategory}
+                   type="button"
+                   className="btn btn-outline-primary btn-sm"
+                   onClick={addCategory}
                 >
                   + Add Category Card
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ---- Banners section ---- */}
+          <div className="col-12 mt-4 pt-3 border-top">
+            <h6 className="mb-2">Homepage Slider Banners</h6>
+            <p className="text-muted small">
+              Upload banner images, add headings, description text, and button link URLs for the home page slider.
+            </p>
+          </div>
+
+          <div className="col-12">
+            <div className="row g-3">
+              {banners.map((ban, idx) => (
+                <div key={idx} className="col-md-12">
+                  <div className="card border p-3">
+                    <div className="row g-3">
+                      <div className="col-md-4">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="position-relative" style={{ width: 120, height: 75, flexShrink: 0 }}>
+                            <img
+                              src={ban.image}
+                              alt={`Banner ${idx + 1}`}
+                              className="img-fluid rounded border"
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          </div>
+                          <div className="flex-grow-1">
+                            <label className="form-label mb-1 small fw-semibold">Upload Image</label>
+                            <input
+                              type="file"
+                              className="form-control form-control-sm"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleBannerImageUpload(idx, file);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-md-8">
+                        <div className="row g-2">
+                          <div className="col-md-6">
+                            <label className="form-label mb-1 small fw-semibold">Subtitle / Badge</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              value={ban.span}
+                              onChange={(e) => handleBannerFieldChange(idx, "span", e.target.value)}
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label mb-1 small fw-semibold">Button Link URL</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              value={ban.link}
+                              onChange={(e) => handleBannerFieldChange(idx, "link", e.target.value)}
+                            />
+                          </div>
+                          <div className="col-md-12">
+                            <label className="form-label mb-1 small fw-semibold">Heading Title (use \n for line break)</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              value={ban.title}
+                              onChange={(e) => handleBannerFieldChange(idx, "title", e.target.value)}
+                            />
+                          </div>
+                          <div className="col-md-12">
+                            <label className="form-label mb-1 small fw-semibold">Description Text</label>
+                            <textarea
+                              className="form-control form-control-sm"
+                              rows={2}
+                              value={ban.description}
+                              onChange={(e) => handleBannerFieldChange(idx, "description", e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="d-flex justify-content-between mt-3 pt-2 border-top">
+                      <div className="d-flex gap-1">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-xs px-2"
+                          onClick={() => moveBanner(idx, -1)}
+                          disabled={idx === 0}
+                          title="Move Up"
+                        >
+                          ↑ Move Up
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-xs px-2"
+                          onClick={() => moveBanner(idx, 1)}
+                          disabled={idx === banners.length - 1}
+                          title="Move Down"
+                        >
+                          ↓ Move Down
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger btn-xs px-2"
+                        onClick={() => deleteBanner(idx)}
+                      >
+                        Remove Banner
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="col-12 mt-3">
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={addBanner}
+                >
+                  + Add Banner Slide
                 </button>
               </div>
             </div>

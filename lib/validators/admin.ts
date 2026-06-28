@@ -145,6 +145,7 @@ export const adminSettingsKVSchema = z.object({
     .coerce.number()
     .refine((n) => n === 0 || n === 1, "0 or 1"),
   home_categories: z.string().optional(),
+  home_banners: z.string().optional(),
 });
 export type AdminSettingsKVInput = z.infer<typeof adminSettingsKVSchema>;
 

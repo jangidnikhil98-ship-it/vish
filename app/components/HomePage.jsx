@@ -57,7 +57,7 @@ const testimonials = [
 /**
  * @param {{ bestsellers?: Bestseller[] }} props
  */
-export default function HomePage({ bestsellers = [], newArrivals = [], categories = [] }) {
+export default function HomePage({ bestsellers = [], newArrivals = [], categories = [], banners = [] }) {
   useEffect(() => {
     let aosTries = 0;
     let owlTries = 0;
@@ -219,88 +219,75 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
     };
   }, []);
 
-  return (
-    <>
-      {/* HERO */}
-      <section className="hero-banner">
-        <div
-          id="carouselExampleCaptions"
-          className="carousel slide"
-        >
-          <div className="carousel-indicators">
-            <button
-              type="button"
-              data-bs-target="#carouselExampleCaptions"
-              data-bs-slide-to="0"
-              className="active"
-              aria-current="true"
-              aria-label="Slide 1"
-            ></button>
-            <button
-              type="button"
-              data-bs-target="#carouselExampleCaptions"
-              data-bs-slide-to="1"
-              aria-label="Slide 2"
-            ></button>
-          </div>
-          <div className="carousel-inner">
-            <div className="carousel-item active">
-              <img
-                src="/img/banner.webp"
-                className="d-block w-100"
-                alt="Personalized Wooden Engraved Gifts — Vishwakarma Gifts"
-                width="1920"
-                height="800"
-                fetchPriority="high"
-                decoding="async"
-              />
-              <div className="carousel-caption ">
-                <span>Choose the Perfect Personalized Wooden Gifts</span>
-                <h5>
-                  Create lasting memories with custom <br /> wooden engraved
-                  gifts
-                </h5>
-                <p>
-                  Shop beautifully handcrafted personalized wooden photo frames,
-                  plaques, and unique gifts <br /> for birthdays, weddings,
-                  anniversaries, and special occasions.
-                </p>
-                <Link
-                  href="/products/customizable-engraved-on-wood-photo-frame-round-shape"
-                  className="hero-shop-btn"
-                >
-                  <button>Shop Now</button>
-                </Link>
-              </div>
-            </div>
-            <div className="carousel-item">
-              <img
-                src="/img/banner2.webp"
-                className="d-block w-100"
-                alt="Premium Personalized Corporate Gifts & Office Sets"
-                width="1920"
-                height="800"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="carousel-caption ">
-                <span>Premium Personalized Corporate Gifting Solutions</span>
-                <h5>
-                  Custom Engraved Corporate <br /> Gift Sets
-                </h5>
-                <p>
-                  Impress your clients and team with custom-branded smart bottles, executive diaries,
-                  <br />keychains, and pens tailored to reflect your brand&apos;s professionalism.
-                </p>
-                <Link
-                  href="/products?type=corporate-gifts"
-                  className="hero-shop-btn"
-                >
-                  <button>Shop Now</button>
-                </Link>
-              </div>
-            </div>
-          </div>
+        const finalBanners = banners.length > 0 ? banners : [
+          {
+            image: "/img/banner.webp",
+            span: "Choose the Perfect Personalized Wooden Gifts",
+            title: "Create lasting memories with custom \n wooden engraved gifts",
+            description: "Shop beautifully handcrafted personalized wooden photo frames, plaques, and unique gifts for birthdays, weddings, anniversaries, and special occasions.",
+            link: "/products/customizable-engraved-on-wood-photo-frame-round-shape"
+          },
+          {
+            image: "/img/banner2.webp",
+            span: "Premium Personalized Corporate Gifting Solutions",
+            title: "Custom Engraved Corporate \n Gift Sets",
+            description: "Impress your clients and team with custom-branded smart bottles, executive diaries, keychains, and pens tailored to reflect your brand's professionalism.",
+            link: "/products?type=corporate-gifts"
+          }
+        ];
+
+        return (
+          <>
+            {/* HERO */}
+            <section className="hero-banner">
+              <div
+                id="carouselExampleCaptions"
+                className="carousel slide"
+              >
+                <div className="carousel-indicators">
+                  {finalBanners.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      data-bs-target="#carouselExampleCaptions"
+                      data-bs-slide-to={idx}
+                      className={idx === 0 ? "active" : ""}
+                      aria-current={idx === 0 ? "true" : undefined}
+                      aria-label={`Slide ${idx + 1}`}
+                    ></button>
+                  ))}
+                </div>
+                <div className="carousel-inner">
+                  {finalBanners.map((b, idx) => (
+                    <div key={idx} className={`carousel-item ${idx === 0 ? "active" : ""}`}>
+                      <img
+                        src={b.image}
+                        className="d-block w-100"
+                        alt={b.span || "Banner slide"}
+                        width="1920"
+                        height="800"
+                        fetchPriority={idx === 0 ? "high" : undefined}
+                        loading={idx === 0 ? undefined : "lazy"}
+                        decoding="async"
+                      />
+                      <div className="carousel-caption ">
+                        <span>{b.span}</span>
+                        <h5>
+                          {b.title.split(/\\n|\n/).map((line, lineIdx) => (
+                            <span key={lineIdx}>
+                              {line}
+                              {lineIdx < b.title.split(/\\n|\n/).length - 1 && <br />}
+                            </span>
+                          ))}
+                        </h5>
+                        <p>{b.description}</p>
+                        <Link href={b.link} className="hero-shop-btn">
+                          <button>Shop Now</button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
           <button
             className="carousel-control-prev"
             type="button"

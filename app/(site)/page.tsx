@@ -53,12 +53,14 @@ export default async function Home() {
   }> = [];
 
   let categories: Array<{ name: string; type: string; image: string }> = [];
+  let banners: Array<{ image: string; span: string; title: string; description: string; link: string }> = [];
 
   try {
-    const [result, resultNew, catsStr] = await Promise.all([
+    const [result, resultNew, catsStr, bannersStr] = await Promise.all([
       listProducts({ type: "bestseller", page: 1, perPage: 8 }),
       listProducts({ page: 1, perPage: 8 }),
       getSetting("home_categories"),
+      getSetting("home_banners"),
     ]);
 
     bestsellers = result.data.map((r) => ({
@@ -80,9 +82,12 @@ export default async function Home() {
     }));
 
     categories = JSON.parse(catsStr || "[]");
+    banners = JSON.parse(bannersStr || "[]");
   } catch (err) {
-    console.error("[home] failed to load bestsellers/newArrivals/categories:", err);
+    console.error("[home] failed to load bestsellers/newArrivals/categories/banners:", err);
   }
+
+  const firstBannerImage = banners[0]?.image || "/img/banner.webp";
 
   return (
     <>
@@ -91,10 +96,15 @@ export default async function Home() {
       <link
         rel="preload"
         as="image"
-        href="/img/banner.webp"
+        href={firstBannerImage}
         fetchPriority="high"
       />
-      <HomePage bestsellers={bestsellers} newArrivals={newArrivals} categories={categories} />
+      <HomePage
+        bestsellers={bestsellers}
+        newArrivals={newArrivals}
+        categories={categories}
+        banners={banners}
+      />
     </>
   );
 }
