@@ -281,6 +281,8 @@ export async function createOrderWithItems(params: {
       coupon_code: params.appliedCoupon?.code ?? null,
       quantity: params.pricedCart.totalQuantity,
       payment_status: "pending",
+      created_at: sql`CURRENT_TIMESTAMP`,
+      updated_at: sql`CURRENT_TIMESTAMP`,
     });
 
     const orderId = Number(orderInsert.insertId);
