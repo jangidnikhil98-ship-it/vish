@@ -405,6 +405,12 @@ export default function Header() {
                 Contact us
               </Link>
             </li>
+            <li className="nav-item">
+              <Link href="/track" onClick={() => setNavOpen(false)}>
+                <i className="fa-solid fa-truck-fast mobile-nav-icon" aria-hidden="true"></i>
+                Track Order
+              </Link>
+            </li>
           </ul>
 
           {/* Mobile-only auth footer */}
@@ -521,6 +527,9 @@ export default function Header() {
                   </>
                 ) : (
                   <>
+                    <Link href="/track" onClick={() => setAcctOpen(false)}>
+                      Track Order
+                    </Link>
                     <Link href="/login" onClick={() => setAcctOpen(false)}>
                       Login
                     </Link>

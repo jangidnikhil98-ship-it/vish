@@ -760,6 +760,12 @@
       "regex": "^/terms\\-and\\-service(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/terms\\-and\\-service(?:/)?$"
+    },
+    {
+      "page": "/track",
+      "regex": "^/track(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/track(?:/)?$"
     }
   ],
   "dataRoutes": [],
