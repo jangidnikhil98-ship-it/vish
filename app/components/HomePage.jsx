@@ -242,12 +242,6 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
               data-bs-slide-to="1"
               aria-label="Slide 2"
             ></button>
-            <button
-              type="button"
-              data-bs-target="#carouselExampleCaptions"
-              data-bs-slide-to="2"
-              aria-label="Slide 3"
-            ></button>
           </div>
           <div className="carousel-inner">
             <div className="carousel-item active">
@@ -281,56 +275,25 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
             </div>
             <div className="carousel-item">
               <img
-                src="/img/banner.webp"
+                src="/img/banner2.webp"
                 className="d-block w-100"
-                alt="Custom Wooden Engraved Gifts"
+                alt="Premium Personalized Corporate Gifts & Office Sets"
                 width="1920"
                 height="800"
                 loading="lazy"
                 decoding="async"
               />
               <div className="carousel-caption ">
-                <span>Choose the Perfect Personalized Wooden Gifts</span>
+                <span>Premium Personalized Corporate Gifting Solutions</span>
                 <h5>
-                  Create lasting memories with custom <br /> wooden engraved
-                  gifts
+                  Custom Engraved Corporate <br /> Gift Sets
                 </h5>
                 <p>
-                  Shop beautifully handcrafted personalized wooden photo frames,
-                  plaques, and unique gifts <br /> for birthdays, weddings,
-                  anniversaries, and special occasions.
+                  Impress your clients and team with custom-branded smart bottles, executive diaries,
+                  <br />keychains, and pens tailored to reflect your brand&apos;s professionalism.
                 </p>
                 <Link
-                  href="/products/customizable-engraved-on-wood-photo-frame-round-shape"
-                  className="hero-shop-btn"
-                >
-                  <button>Shop Now</button>
-                </Link>
-              </div>
-            </div>
-            <div className="carousel-item">
-              <img
-                src="/img/banner.webp"
-                className="d-block w-100"
-                alt="Personalized Wedding & Anniversary Gifts"
-                width="1920"
-                height="800"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="carousel-caption ">
-                <span>Choose the Perfect Personalized Wooden Gifts</span>
-                <h5>
-                  Create lasting memories with custom <br /> wooden engraved
-                  gifts
-                </h5>
-                <p>
-                  Shop beautifully handcrafted personalized wooden photo frames,
-                  plaques, and unique gifts <br /> for birthdays, weddings,
-                  anniversaries, and special occasions.
-                </p>
-                <Link
-                  href="/products/customizable-engraved-on-wood-photo-frame-round-shape"
+                  href="/products?type=corporate-gifts"
                   className="hero-shop-btn"
                 >
                   <button>Shop Now</button>

@@ -1816,25 +1816,37 @@ a.view-all-btn {
   justify-content: center;
   margin-top: 50px;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
 }
-.pagination a {
+.pagination a,
+.pagination .page-item .page-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 5px;
+  width: 42px;
+  height: 42px;
+  border-radius: 6px !important;
+  border: 1px solid #e3dfdf;
   color: #160e4b;
   font-weight: 600;
-  transition: all 0.3s ease;
-  min-height: 44px;
-  min-width: 44px;
+  background-color: #ffffff;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none;
+  text-decoration: none;
 }
 .pagination a:hover,
-.pagination a.active {
-  background: #623a18;
-  color: #fff;
+.pagination a.active,
+.pagination .page-item .page-link:hover,
+.pagination .page-item.active .page-link {
+  background-color: #623a18 !important;
+  border-color: #623a18 !important;
+  color: #ffffff !important;
+}
+.pagination .page-item.disabled .page-link {
+  background-color: #f8f9fa;
+  border-color: #e3dfdf;
+  color: #6c757d;
+  opacity: 0.6;
 }
 
 /* ===================== BLOG SINGLE ===================== */
