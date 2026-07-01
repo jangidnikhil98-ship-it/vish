@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
       shiprocket_auto_create_order: String(parsed.shiprocket_auto_create_order),
       home_categories: parsed.home_categories !== undefined ? String(parsed.home_categories) : undefined,
       home_banners: parsed.home_banners !== undefined ? String(parsed.home_banners) : undefined,
+      about_heading: parsed.about_heading !== undefined ? String(parsed.about_heading) : undefined,
+      about_content: parsed.about_content !== undefined ? String(parsed.about_content) : undefined,
     });
 
     return ok({ message: "Store settings updated successfully." });

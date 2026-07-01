@@ -146,6 +146,8 @@ export const adminSettingsKVSchema = z.object({
     .refine((n) => n === 0 || n === 1, "0 or 1"),
   home_categories: z.string().optional(),
   home_banners: z.string().optional(),
+  about_heading: z.string().trim().min(1).max(255).optional(),
+  about_content: z.string().optional(),
 });
 export type AdminSettingsKVInput = z.infer<typeof adminSettingsKVSchema>;
 

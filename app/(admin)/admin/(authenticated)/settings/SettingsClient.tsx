@@ -24,6 +24,8 @@ interface StoreSettings {
   shiprocket_auto_create_order: string;
   home_categories: string;
   home_banners: string;
+  about_heading: string;
+  about_content: string;
 }
 
 export function SettingsClient({
@@ -525,6 +527,8 @@ function StoreSettingsForm({
           ),
           home_categories: form.home_categories,
           home_banners: form.home_banners,
+          about_heading: form.about_heading,
+          about_content: form.about_content,
         }),
       });
       const data = await res.json();
@@ -752,7 +756,7 @@ function StoreSettingsForm({
           <div className="col-12 mt-4 pt-3 border-top">
             <h6 className="mb-2">Homepage Category Cards</h6>
             <p className="text-muted small">
-              These cards are displayed in the "Our Category" section on the homepage. You can upload custom images, change display names, choose product filters, and re-order them.
+              These cards are displayed in the &quot;Our Category&quot; section on the homepage. You can upload custom images, change display names, choose product filters, and re-order them.
             </p>
           </div>
 
@@ -978,6 +982,43 @@ function StoreSettingsForm({
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* ---- About Us Section ---- */}
+          <div className="col-12 border-top pt-4 mt-4">
+            <h6 className="mb-2">About Us Section (Homepage)</h6>
+            <small className="text-muted d-block mb-3">
+              This section is rendered on the homepage under &quot;Why Choose Us / About&quot;. You can use line breaks (pressing Enter) to format paragraphs.
+            </small>
+          </div>
+
+          <div className="col-12 mb-3">
+            <label className="form-label">About Us Heading</label>
+            <input
+              type="text"
+              className={`form-control ${errors.about_heading ? "is-invalid" : ""}`}
+              value={form.about_heading || ""}
+              onChange={(e) => update("about_heading", e.target.value)}
+              placeholder="About Vishwakarma Gifts"
+            />
+            {errors.about_heading ? (
+              <div className="invalid-feedback d-block">{errors.about_heading}</div>
+            ) : null}
+          </div>
+
+          <div className="col-12 mb-3">
+            <label className="form-label">About Us Content</label>
+            <textarea
+              className={`form-control ${errors.about_content ? "is-invalid" : ""}`}
+              rows={8}
+              value={form.about_content || ""}
+              onChange={(e) => update("about_content", e.target.value)}
+              placeholder="Write the about us description here..."
+              style={{ minHeight: "150px" }}
+            />
+            {errors.about_content ? (
+              <div className="invalid-feedback d-block">{errors.about_content}</div>
+            ) : null}
           </div>
 
           <div className="col-12 d-flex gap-2 mt-4 pt-3 border-top">

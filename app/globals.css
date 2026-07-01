@@ -615,11 +615,13 @@ nav#nav {
   display: block;
   padding-bottom: 10px;
 }
-.hero-banner .carousel-caption h5 {
+.hero-banner .carousel-caption h5,
+.hero-banner .carousel-caption h1 {
   color: #fff;
   font-size: 35px;
   font-weight: 600;
   padding-bottom: 10px;
+  margin: 0;
 }
 .hero-banner .carousel-caption p {
   color: #fff;
@@ -3281,8 +3283,10 @@ section.success-section {
   }
   section.hero-banner .carousel-inner .carousel-caption p { display: none; }
   section.hero-banner .carousel-inner .carousel-caption span { font-size: 14px; }
-  section.hero-banner .carousel-inner .carousel-caption h5 { font-size: 21px; }
-  section.hero-banner .carousel-inner .carousel-caption h5 br { display: none; }
+  section.hero-banner .carousel-inner .carousel-caption h5,
+  section.hero-banner .carousel-inner .carousel-caption h1 { font-size: 21px; }
+  section.hero-banner .carousel-inner .carousel-caption h5 br,
+  section.hero-banner .carousel-inner .carousel-caption h1 br { display: none; }
   section.hero-banner .carousel-inner { position: relative; }
   section.hero-banner .carousel-inner::before {
     content: '';
@@ -3541,12 +3545,14 @@ section.success-section {
 }
 .hero-banner .carousel-item.active .carousel-caption span,
 .hero-banner .carousel-item.active .carousel-caption h5,
+.hero-banner .carousel-item.active .carousel-caption h1,
 .hero-banner .carousel-item.active .carousel-caption p,
 .hero-banner .carousel-item.active .carousel-caption .hero-shop-btn {
   animation: vg-rise-fade 0.7s ease-out both;
 }
 .hero-banner .carousel-item.active .carousel-caption span        { animation-delay: 0.10s; }
-.hero-banner .carousel-item.active .carousel-caption h5          { animation-delay: 0.25s; }
+.hero-banner .carousel-item.active .carousel-caption h5,
+.hero-banner .carousel-item.active .carousel-caption h1          { animation-delay: 0.25s; }
 .hero-banner .carousel-item.active .carousel-caption p           { animation-delay: 0.40s; }
 .hero-banner .carousel-item.active .carousel-caption .hero-shop-btn { animation-delay: 0.55s; }
 
@@ -3635,6 +3641,7 @@ section.category-section.Bestsaller_section .category-item-annivesary:hover .cat
   .hero-banner .carousel-item.active img,
   .hero-banner .carousel-item.active .carousel-caption span,
   .hero-banner .carousel-item.active .carousel-caption h5,
+  .hero-banner .carousel-item.active .carousel-caption h1,
   .hero-banner .carousel-item.active .carousel-caption p,
   .hero-banner .carousel-item.active .carousel-caption .hero-shop-btn {
     animation: none !important;

@@ -50,6 +50,8 @@ export const SETTING_DEFAULTS = {
       link: "/products?type=corporate-gifts"
     }
   ]),
+  about_heading: "About Vishwakarma Gifts",
+  about_content: "Vishwakarma Gifts is a trusted online destination for personalized wooden engraved gifts in India, crafted with care, creativity, and precision. We specialize in custom wooden photo frames, engraved wooden plaques, name boards, keychains, and unique gifting solutions designed to turn special moments into lifelong memories.\n\nEach product at Vishwakarma Gifts is handcrafted using premium-quality wood and customized with advanced engraving techniques to ensure fine detailing and long-lasting finish. Whether it's a birthday, wedding, anniversary, Mother's Day, or a special occasion, our personalized wooden gifts add a warm and emotional touch to every celebration.\n\nWe believe that gifts should be meaningful, eco-friendly, and timeless. That's why our wooden engraved products are thoughtfully designed to reflect love, emotions, and individuality. With easy customization, secure online payments, and reliable delivery across India, Vishwakarma Gifts makes personalized gifting simple and special.\n\nChoose Vishwakarma Gifts to celebrate your moments with beautifully crafted customized wooden gifts that speak from the heart.",
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;

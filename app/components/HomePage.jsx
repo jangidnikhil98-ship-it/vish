@@ -57,7 +57,14 @@ const testimonials = [
 /**
  * @param {{ bestsellers?: Bestseller[] }} props
  */
-export default function HomePage({ bestsellers = [], newArrivals = [], categories = [], banners = [] }) {
+export default function HomePage({
+  bestsellers = [],
+  newArrivals = [],
+  categories = [],
+  banners = [],
+  aboutHeading = "About Vishwakarma Gifts",
+  aboutContent = "",
+}) {
   useEffect(() => {
     let aosTries = 0;
     let owlTries = 0;
@@ -272,14 +279,14 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
                       />
                       <div className="carousel-caption ">
                         <span>{b.span}</span>
-                        <h5>
+                        <h1 className="banner-h1">
                           {b.title.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
                             <span key={lineIdx}>
                               {line}
                               {lineIdx < b.title.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
                             </span>
                           ))}
-                        </h5>
+                        </h1>
                         <p>
                           {b.description.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
                             <span key={lineIdx}>
@@ -448,36 +455,15 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
               data-aos-duration="500"
             >
               <div className="proud-premium">
-                <h6>About Vishwakarma Gifts</h6>
-                <p>
-                  Vishwakarma Gifts is a trusted online destination for
-                  personalized wooden engraved gifts in India, crafted with
-                  care, creativity, and precision. We specialize in custom
-                  wooden photo frames, engraved wooden plaques, name boards,
-                  keychains, and unique gifting solutions designed to turn
-                  special moments into lifelong memories.
-                  <br />
-                  <br />
-                  Each product at Vishwakarma Gifts is handcrafted using
-                  premium-quality wood and customized with advanced engraving
-                  techniques to ensure fine detailing and long-lasting finish.
-                  Whether it&apos;s a birthday, wedding, anniversary,
-                  Mother&apos;s Day, or a special occasion, our personalized
-                  wooden gifts add a warm and emotional touch to every
-                  celebration.
-                  <br />
-                  <br />
-                  We believe that gifts should be meaningful, eco-friendly, and
-                  timeless. That&apos;s why our wooden engraved products are
-                  thoughtfully designed to reflect love, emotions, and
-                  individuality. With easy customization, secure online
-                  payments, and reliable delivery across India, Vishwakarma
-                  Gifts makes personalized gifting simple and special.
-                  <br />
-                  <br />
-                  Choose Vishwakarma Gifts to celebrate your moments with
-                  beautifully crafted customized wooden gifts that speak from
-                  the heart.
+                <h2>{aboutHeading}</h2>
+                <p style={{ whiteSpace: "pre-line" }}>
+                  {aboutContent || `Vishwakarma Gifts is a trusted online destination for personalized wooden engraved gifts in India, crafted with care, creativity, and precision. We specialize in custom wooden photo frames, engraved wooden plaques, name boards, keychains, and unique gifting solutions designed to turn special moments into lifelong memories.
+
+Each product at Vishwakarma Gifts is handcrafted using premium-quality wood and customized with advanced engraving techniques to ensure fine detailing and long-lasting finish. Whether it's a birthday, wedding, anniversary, Mother's Day, or a special occasion, our personalized wooden gifts add a warm and emotional touch to every celebration.
+
+We believe that gifts should be meaningful, eco-friendly, and timeless. That's why our wooden engraved products are thoughtfully designed to reflect love, emotions, and individuality. With easy customization, secure online payments, and reliable delivery across India, Vishwakarma Gifts makes personalized gifting simple and special.
+
+Choose Vishwakarma Gifts to celebrate your moments with beautifully crafted customized wooden gifts that speak from the heart.`}
                 </p>
               </div>
             </div>
