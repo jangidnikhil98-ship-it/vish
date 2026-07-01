@@ -9,6 +9,7 @@ import {
   paymentDetails,
   shippingDetails,
   users,
+  productImages,
 } from "@/lib/db/schema";
 import { buildListResult, type ListResult } from "@/lib/admin-pagination";
 
@@ -228,6 +229,7 @@ export interface AdminOrderItem {
   back_image: string | null;
   front_text: string | null;
   back_text: string | null;
+  catalog_image?: string | null;
 }
 
 export interface AdminOrderDetail {
@@ -370,8 +372,16 @@ export async function getAdminOrderById(
         back_image: orderItems.back_image,
         front_text: orderItems.front_text,
         back_text: orderItems.back_text,
+        catalog_image: productImages.image_url,
       })
       .from(orderItems)
+      .leftJoin(
+        productImages,
+        and(
+          eq(productImages.product_id, orderItems.product_id),
+          eq(productImages.image_type, 1),
+        ),
+      )
       .where(eq(orderItems.order_id, id))
       .orderBy(orderItems.id),
   ]);

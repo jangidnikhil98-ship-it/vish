@@ -119,93 +119,108 @@ export default async function AdminOrderViewPage({
                               className="border-bottom-secondary"
                             >
                               <td>
-                                <div>
-                                  <strong>{item.product_name ?? "—"}</strong>
-                                  {item.front_text ? (
-                                    <div className="small text-muted">
-                                      Front: {item.front_text}
-                                    </div>
-                                  ) : null}
-                                  {item.back_text ? (
-                                    <div className="small text-muted">
-                                      Back: {item.back_text}
-                                    </div>
-                                  ) : null}
-                                  {item.front_image || item.back_image ? (
-                                    <div className="mt-2">
-                                      <div className="small fw-semibold mb-1">
-                                        Customization
+                                <div className="d-flex align-items-center gap-3">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={resolveCustomizationImage(item.catalog_image) ?? "/img/no-image.png"}
+                                    alt={item.product_name ?? "Product image"}
+                                    style={{
+                                      width: 60,
+                                      height: 60,
+                                      objectFit: "cover",
+                                      borderRadius: 6,
+                                      border: "1px solid #eee",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <div style={{ flex: 1 }}>
+                                    <strong>{item.product_name ?? "—"}</strong>
+                                    {item.front_text ? (
+                                      <div className="small text-muted">
+                                        Front: {item.front_text}
                                       </div>
-
-                                      {item.front_image ? (
-                                        <div className="mb-2">
-                                          <div className="small text-muted">
-                                            Front Image
-                                          </div>
-                                          <div className="d-flex align-items-center gap-2 flex-wrap">
-                                            <a
-                                              href={resolveCustomizationImage(item.front_image) ?? "#"}
-                                              target="_blank"
-                                              rel="noreferrer noopener"
-                                            >
-                                              <img
-                                                src={resolveCustomizationImage(item.front_image) ?? ""}
-                                                alt={`${item.product_name ?? "Product"} front customization`}
-                                                style={{
-                                                  width: 64,
-                                                  height: 64,
-                                                  objectFit: "cover",
-                                                  borderRadius: 6,
-                                                  border: "1px solid #ddd",
-                                                }}
-                                              />
-                                            </a>
-                                            <a
-                                              href={resolveCustomizationImage(item.front_image) ?? "#"}
-                                              download
-                                              className="btn btn-outline-primary btn-xs"
-                                            >
-                                              Download Front
-                                            </a>
-                                          </div>
+                                    ) : null}
+                                    {item.back_text ? (
+                                      <div className="small text-muted">
+                                        Back: {item.back_text}
+                                      </div>
+                                    ) : null}
+                                    {item.front_image || item.back_image ? (
+                                      <div className="mt-2">
+                                        <div className="small fw-semibold mb-1">
+                                          Customization
                                         </div>
-                                      ) : null}
 
-                                      {item.back_image ? (
-                                        <div>
-                                          <div className="small text-muted">
-                                            Back Image
+                                        {item.front_image ? (
+                                          <div className="mb-2">
+                                            <div className="small text-muted">
+                                              Front Image
+                                            </div>
+                                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                                              <a
+                                                href={resolveCustomizationImage(item.front_image) ?? "#"}
+                                                target="_blank"
+                                                rel="noreferrer noopener"
+                                              >
+                                                <img
+                                                  src={resolveCustomizationImage(item.front_image) ?? ""}
+                                                  alt={`${item.product_name ?? "Product"} front customization`}
+                                                  style={{
+                                                    width: 64,
+                                                    height: 64,
+                                                    objectFit: "cover",
+                                                    borderRadius: 6,
+                                                    border: "1px solid #ddd",
+                                                  }}
+                                                />
+                                              </a>
+                                              <a
+                                                href={resolveCustomizationImage(item.front_image) ?? "#"}
+                                                download
+                                                className="btn btn-outline-primary btn-xs"
+                                              >
+                                                Download Front
+                                              </a>
+                                            </div>
                                           </div>
-                                          <div className="d-flex align-items-center gap-2 flex-wrap">
-                                            <a
-                                              href={resolveCustomizationImage(item.back_image) ?? "#"}
-                                              target="_blank"
-                                              rel="noreferrer noopener"
-                                            >
-                                              <img
-                                                src={resolveCustomizationImage(item.back_image) ?? ""}
-                                                alt={`${item.product_name ?? "Product"} back customization`}
-                                                style={{
-                                                  width: 64,
-                                                  height: 64,
-                                                  objectFit: "cover",
-                                                  borderRadius: 6,
-                                                  border: "1px solid #ddd",
-                                                }}
-                                              />
-                                            </a>
-                                            <a
-                                              href={resolveCustomizationImage(item.back_image) ?? "#"}
-                                              download
-                                              className="btn btn-outline-primary btn-xs"
-                                            >
-                                              Download Back
-                                            </a>
+                                        ) : null}
+
+                                        {item.back_image ? (
+                                          <div>
+                                            <div className="small text-muted">
+                                              Back Image
+                                            </div>
+                                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                                              <a
+                                                href={resolveCustomizationImage(item.back_image) ?? "#"}
+                                                target="_blank"
+                                                rel="noreferrer noopener"
+                                              >
+                                                <img
+                                                  src={resolveCustomizationImage(item.back_image) ?? ""}
+                                                  alt={`${item.product_name ?? "Product"} back customization`}
+                                                  style={{
+                                                    width: 64,
+                                                    height: 64,
+                                                    objectFit: "cover",
+                                                    borderRadius: 6,
+                                                    border: "1px solid #ddd",
+                                                  }}
+                                                />
+                                              </a>
+                                              <a
+                                                href={resolveCustomizationImage(item.back_image) ?? "#"}
+                                                download
+                                                className="btn btn-outline-primary btn-xs"
+                                              >
+                                                Download Back
+                                              </a>
+                                            </div>
                                           </div>
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                  ) : null}
+                                        ) : null}
+                                      </div>
+                                    ) : null}
+                                  </div>
                                 </div>
                               </td>
                               <td>{item.product_size ?? "—"}</td>
