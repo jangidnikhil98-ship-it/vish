@@ -49,30 +49,39 @@ export async function generateMetadata({
   const productName = product.name ?? "Product";
   const productSlug = product.slug ?? slug;
 
+  const cleanDescription = (product.description ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+
   const description =
-    (product.description ?? "")
-      .replace(/<[^>]+>/g, "")
-      .slice(0, 155)
-      .trim() ||
+    cleanDescription.slice(0, 155).trim() ||
     `Buy ${productName} — handcrafted personalised wooden gift from Vishwakarma Gifts.`;
 
   const ogImage = product.image ? imageSrc(product.image) : "/img/banner.webp";
+  const seoTitle = `${productName} | Vishwakarma Gifts`;
 
   return {
-    title: productName,
+    title: seoTitle,
     description,
     alternates: { canonical: `/products/${productSlug}` },
     openGraph: {
-      title: productName,
+      title: seoTitle,
       description,
       url: `/products/${productSlug}`,
-      images: [{ url: ogImage, alt: productName }],
+      images: [{ url: ogImage, alt: `${productName} - Personalised Wooden Gift | Vishwakarma Gifts` }],
       type: "website",
       siteName: "Vishwakarma Gifts",
     },
     twitter: {
       card: "summary_large_image",
-      title: productName,
+      title: seoTitle,
       description,
       images: [ogImage],
     },
@@ -240,7 +249,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imageSrc(p.image)}
-                        alt={p.name ?? "Product"}
+                        alt={`${p.name ?? "Product"} - Personalised Wooden Gift | Vishwakarma Gifts`}
                         loading="lazy"
                       />
                     </div>

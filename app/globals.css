@@ -3264,6 +3264,9 @@ section.success-section {
   section.hero-banner .carousel-inner img {
     height: 450px;
     object-fit: cover;
+    object-position: center;
+  }
+  section.hero-banner .carousel-inner img.banner-img-0 {
     object-position: -530px 0px;
   }
   section.hero-banner .carousel-inner .carousel-caption {
@@ -3456,9 +3459,12 @@ section.success-section {
   section.hero-banner .carousel-inner img {
     height: 450px;
     object-fit: cover;
-    object-position: -270px 0px;
+    object-position: center;
     width: 100%;
     background-position: center;
+  }
+  section.hero-banner .carousel-inner img.banner-img-0 {
+    object-position: -270px 0px;
   }
   .category-item { width: 100%; height: 250px; }
   .category-item img { width: 100%; height: 100%; }
@@ -3475,9 +3481,12 @@ section.success-section {
   section.hero-banner .carousel-inner img {
     height: 450px;
     object-fit: cover;
-    object-position: -455px 0px;
+    object-position: center;
     width: 100%;
     background-position: center;
+  }
+  section.hero-banner .carousel-inner img.banner-img-0 {
+    object-position: -455px 0px;
   }
   .product-section h2 {
     font-size: 16px;

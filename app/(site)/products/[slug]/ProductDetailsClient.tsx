@@ -37,7 +37,7 @@ export function Gallery({
           id="mainProductImage"
           src={active}
           className="default-img"
-          alt={productName}
+          alt={`${productName} - Personalised Wooden Gift | Vishwakarma Gifts`}
         />
       </div>
       <div className="product-detailsimages">
@@ -55,7 +55,7 @@ export function Gallery({
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} className="default-img" alt={productName} />
+            <img src={src} className="default-img" alt={`${productName} - View ${i + 1} | Vishwakarma Gifts`} />
           </div>
         ))}
       </div>

@@ -229,7 +229,7 @@ function ProductTile({ product }: { product: ProductCard }) {
             <img
               src={imageSrc(product.image)}
               className="default-img"
-              alt={name}
+              alt={`${name} - Personalised Wooden Gift | Vishwakarma Gifts`}
               loading="lazy"
             />
           </div>

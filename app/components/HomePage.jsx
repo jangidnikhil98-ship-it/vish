@@ -262,7 +262,7 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
                     <div key={idx} className={`carousel-item ${idx === 0 ? "active" : ""}`}>
                       <img
                         src={b.image}
-                        className="d-block w-100"
+                        className={`d-block w-100 banner-img-${idx}`}
                         alt={b.span || "Banner slide"}
                         width="1920"
                         height="800"
@@ -518,7 +518,7 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
                           loading="lazy"
                           src={product.image}
                           className="default-img"
-                          alt={product.name}
+                          alt={`${product.name} - Personalised Wooden Gift | Vishwakarma Gifts`}
                           width="300"
                           height="300"
                         />
@@ -580,7 +580,7 @@ export default function HomePage({ bestsellers = [], newArrivals = [], categorie
                           loading="lazy"
                           src={product.image}
                           className="default-img"
-                          alt={product.name}
+                          alt={`${product.name} - Personalised Wooden Gift | Vishwakarma Gifts`}
                           width="300"
                           height="300"
                         />
