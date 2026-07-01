@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const formatINR = (n) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2 }).format(n);
@@ -267,15 +268,13 @@ export default function HomePage({
                 <div className="carousel-inner">
                   {finalBanners.map((b, idx) => (
                     <div key={idx} className={`carousel-item ${idx === 0 ? "active" : ""}`}>
-                      <img
+                      <Image
                         src={b.image}
                         className={`d-block w-100 banner-img-${idx}`}
                         alt={b.span || "Banner slide"}
-                        width="1920"
-                        height="800"
-                        fetchPriority={idx === 0 ? "high" : undefined}
-                        loading={idx === 0 ? undefined : "lazy"}
-                        decoding="async"
+                        width={1920}
+                        height={800}
+                        priority={idx === 0}
                       />
                       <div className="carousel-caption ">
                         <span>{b.span}</span>
@@ -416,9 +415,11 @@ export default function HomePage({
               >
                 <div className="category-item">
                   <Link href={`/products?type=${cat.type}`}>
-                    <img
+                    <Image
                       src={cat.image}
                       alt={cat.name}
+                      width={320}
+                      height={320}
                       loading="lazy"
                     />
                     <p>{cat.name}</p>

@@ -1,6 +1,7 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { unstable_cache, revalidateTag } from "next/cache";
+import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { siteSettings } from "@/lib/db/schema";
 
@@ -80,21 +81,27 @@ function warnMissingTable(): void {
   );
 }
 
-export async function getSetting(key: SettingKey): Promise<string> {
-  try {
-    const [row] = await db
-      .select({ value: siteSettings.value })
-      .from(siteSettings)
-      .where(eq(siteSettings.key_name, key))
-      .limit(1);
-    return row?.value ?? SETTING_DEFAULTS[key];
-  } catch (err) {
-    if (isMissingTableError(err)) {
-      warnMissingTable();
-      return SETTING_DEFAULTS[key];
+const fetchSettingsFromDb = unstable_cache(
+  async () => {
+    try {
+      return await db
+        .select({ key_name: siteSettings.key_name, value: siteSettings.value })
+        .from(siteSettings);
+    } catch (err) {
+      if (isMissingTableError(err)) {
+        warnMissingTable();
+        return [];
+      }
+      throw err;
     }
-    throw err;
-  }
+  },
+  ["all-site-settings"],
+  { tags: ["settings"], revalidate: 3600 }
+);
+
+export async function getSetting(key: SettingKey): Promise<string> {
+  const settings = await getSettings([key]);
+  return settings[key];
 }
 
 export async function getSettings<K extends SettingKey>(
@@ -104,24 +111,13 @@ export async function getSettings<K extends SettingKey>(
   for (const k of keys) result[k] = SETTING_DEFAULTS[k];
   if (keys.length === 0) return result;
 
-  try {
-    const rows = await db
-      .select({ key_name: siteSettings.key_name, value: siteSettings.value })
-      .from(siteSettings);
-    for (const r of rows) {
-      if (r.key_name && (keys as readonly string[]).includes(r.key_name)) {
-        result[r.key_name as K] = r.value ?? SETTING_DEFAULTS[r.key_name as K];
-      }
+  const rows = await fetchSettingsFromDb();
+  for (const r of rows) {
+    if (r.key_name && (keys as readonly string[]).includes(r.key_name)) {
+      result[r.key_name as K] = r.value ?? SETTING_DEFAULTS[r.key_name as K];
     }
-    return result;
-  } catch (err) {
-    if (isMissingTableError(err)) {
-      warnMissingTable();
-      // result is already pre-filled with defaults above
-      return result;
-    }
-    throw err;
   }
+  return result;
 }
 
 export async function getAllSettings(): Promise<Record<SettingKey, string>> {
@@ -140,6 +136,8 @@ export async function setSetting(key: SettingKey, value: string): Promise<void> 
     .onDuplicateKeyUpdate({
       set: { value, updated_at: sql`CURRENT_TIMESTAMP` },
     });
+  
+  revalidateTag("settings");
 }
 
 export async function setSettings(

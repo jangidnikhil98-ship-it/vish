@@ -166,6 +166,8 @@ export const products = mysqlTable(
     index("idx_products_status").on(t.status),
     index("idx_products_status_id").on(t.status, t.id),
     index("idx_products_for").on(t.product_for),
+    index("idx_products_type").on(t.product_type),
+    index("idx_products_sku").on(t.sku),
   ],
 );
 
@@ -269,6 +271,7 @@ export const blogs = mysqlTable(
   (t) => [
     index("idx_blogs_slug").on(t.slug),
     index("idx_blogs_active_id").on(t.is_active, t.id),
+    index("idx_blogs_published_date").on(t.published_date),
   ],
 );
 
@@ -349,6 +352,9 @@ export const orders = mysqlTable(
     index("idx_orders_user_created").on(t.user_id, t.created_at),
     index("idx_orders_payment_method").on(t.payment_method),
     index("idx_orders_coupon").on(t.coupon_id),
+    index("idx_orders_status").on(t.status),
+    index("idx_orders_payment_status").on(t.payment_status),
+    index("idx_orders_guest").on(t.guest_id),
   ],
 );
 
@@ -379,7 +385,10 @@ export const orderItems = mysqlTable(
     created_at: timestamp("created_at"),
     updated_at: timestamp("updated_at"),
   },
-  (t) => [index("idx_order_items_order").on(t.order_id)],
+  (t) => [
+    index("idx_order_items_order").on(t.order_id),
+    index("idx_order_items_product").on(t.product_id),
+  ],
 );
 
 /* ============================================================
@@ -430,6 +439,7 @@ export const shippingDetails = mysqlTable(
     index("idx_shipping_order").on(t.order_id),
     index("idx_shipping_user").on(t.user_id),
     index("idx_shipping_awb").on(t.awb_code),
+    index("idx_shipping_guest").on(t.guest_id),
   ],
 );
 
@@ -656,6 +666,7 @@ export const couponRedemptions = mysqlTable(
     index("idx_redemptions_coupon").on(t.coupon_id),
     index("idx_redemptions_order").on(t.order_id),
     index("idx_redemptions_user").on(t.user_id),
+    index("idx_redemptions_guest").on(t.guest_id),
   ],
 );
 
