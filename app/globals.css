@@ -945,16 +945,10 @@ section.category-section.our-category-portrait .category-item p {
 .why-chooseus .row {
   align-items: center;
 }
-.proud-premium h6 {
+.proud-premium h6,
+.proud-premium h2 {
   color: #603814;
   font-size: 25px;
-  margin-bottom: 24px;
-  font-weight: 600;
-}
-/* File 1: color:#000. File 2: color:#160e4b */
-.proud-premium h2 {
-  color: #160e4b;
-  font-size: 40px;
   margin-bottom: 24px;
   font-weight: 600;
 }
@@ -3117,8 +3111,8 @@ section.success-section {
 @media (max-width: 1440px) {
   .hero { height: 600px; }
   .logo img { max-width: 290px; }
-  .proud-premium h2 { font-size: 37px; }
-  .proud-premium h6 { font-size: 23px; }
+  .proud-premium h6,
+  .proud-premium h2 { font-size: 23px; }
   .trus-content p { font-size: 14px; }
   .trusted-logo { height: 70px; width: 70px; }
   .trusted-logo img { width: 40px; }
@@ -3130,7 +3124,8 @@ section.success-section {
   .best-shop p { font-size: 15px; line-height: 23px; margin-bottom: 20px; }
   .best-shop h6 { font-size: 19px; }
   .category-item p { font-size: 17px; }
-  .proud-premium h2 { font-size: 31px; }
+  .proud-premium h6,
+  .proud-premium h2 { font-size: 23px; }
   .our-latestproduct h2 { font-size: 33px; }
   .discounted { font-size: 17px; }
   .premium-domainheading h2 { font-size: 37px; }
@@ -3143,8 +3138,8 @@ section.success-section {
   .delvery-content h6 { font-size: 17px; }
   .delvery-content p { font-size: 13px; }
   .delivery-icon { width: 40px; height: 40px; font-size: 17px; }
-  .proud-premium h6 { font-size: 21px; margin-bottom: 12px; }
-  .proud-premium h2 { font-size: 27px; }
+  .proud-premium h6,
+  .proud-premium h2 { font-size: 21px; margin-bottom: 12px; }
   .trusted-logo { height: 60px; width: 60px; }
   .trusted-logo img { width: 30px; }
   .our-latestproduct h2 { font-size: 29px; }
@@ -3163,8 +3158,8 @@ section.success-section {
   .best-shop p { font-size: 14px; line-height: 20px; margin-bottom: 15px; }
   .best-shop h6 { font-size: 18px; }
   .category-item p { font-size: 13px; }
-  .proud-premium h2 { font-size: 25px; }
-  .proud-premium h6 { font-size: 19px; margin-bottom: 10px; }
+  .proud-premium h6,
+  .proud-premium h2 { font-size: 19px; margin-bottom: 10px; }
   .nav-item { font-size: 12px; }
   .nav-list { gap: 16px; }
   .best-shop button { font-size: 13px; }
@@ -3356,8 +3351,8 @@ section.success-section {
   .best-shop p { font-size: 13px; line-height: 18px; margin-bottom: 10px; }
   .best-shop h6 { font-size: 16px; }
   .category-item p { font-size: 14px; }
-  .proud-premium h2 { font-size: 23px; }
-  .proud-premium h6 { font-size: 17px; margin-bottom: 8px; }
+  .proud-premium h6,
+  .proud-premium h2 { font-size: 17px; margin-bottom: 8px; }
   .free-delivery {
     background: #e2d3c2;
     padding: 15px;
@@ -3473,7 +3468,8 @@ section.success-section {
   .category-item { width: 100%; height: 250px; }
   .category-item img { width: 100%; height: 100%; }
   .category-item p { bottom: -14px; }
-  .proud-premium h6 { padding-top: 19px; }
+  .proud-premium h6,
+  .proud-premium h2 { padding-top: 19px; }
   .our-catgery-heading h2 { font-size: 23px; }
   .alltimebest { flex-direction: column; align-items: start; }
   .view-all-btn { margin-top: 16px; }
