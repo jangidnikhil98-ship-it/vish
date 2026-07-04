@@ -241,6 +241,7 @@ export const ratting = mysqlTable(
     }).notNull(),
     rating: tinyint("rating").notNull(),
     comment: text("comment"),
+    image_url: varchar("image_url", { length: 255 }),
     created_at: timestamp("created_at"),
     updated_at: timestamp("updated_at"),
   },

@@ -35,10 +35,13 @@ export type ProductDetail = ProductCard & {
     isDefault: boolean;
   }>;
   reviews: Array<{
+    id: number;
     firstName: string | null;
     lastName: string | null;
     rating: number | null;
     comment: string | null;
+    image_url: string | null;
+    created_at: Date | null;
   }>;
   reviewCount: number;
   avgRating: number;
@@ -281,10 +284,13 @@ export const getProductBySlug = cached(
         .orderBy(desc(productSizes.is_default), productSizes.id),
       db
         .select({
+          id: ratting.id,
           firstName: ratting.first_name,
           lastName: ratting.last_name,
           rating: ratting.rating,
           comment: ratting.comment,
+          image_url: ratting.image_url,
+          created_at: ratting.created_at,
         })
         .from(ratting)
         // Match Laravel behaviour: rows with NULL product_id are global

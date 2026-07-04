@@ -841,7 +841,9 @@
 .hp-footer-logo {
   max-width: 180px;
   margin-bottom: 24px;
-  filter: brightness(0) invert(1);
+  background-color: #fff;
+  padding: 10px 15px;
+  border-radius: 8px;
 }
 .hp-footer-desc {
   color: rgba(255,255,255,0.7);

@@ -7,6 +7,7 @@ import {
   type ProductListResult,
 } from "@/lib/queries/products";
 import { PRODUCT_TYPES, type ProductType } from "@/lib/validators/products";
+import "@/app/components/homepage.css";
 
 const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -171,9 +172,9 @@ export default async function ProductsPage({ searchParams }: PageProps) {
       {itemListJsonLd && <JsonLd data={itemListJsonLd} />}
       <JsonLd data={breadcrumbJsonLd} />
 
-      <section className="inner-banner">
+      <section className="inner-banner" style={{ background: "var(--hp-bg-ivory)", padding: "60px 0", borderBottom: "1px solid rgba(201,168,76,0.2)", textAlign: "center" }}>
         <div className="container">
-          <h1>{headingTitle}</h1>
+          <h1 className="hp-heading" style={{ color: "var(--hp-text-brown)", fontSize: "42px", margin: "0 auto", textAlign: "center" }}>{headingTitle}</h1>
         </div>
       </section>
 
@@ -192,13 +193,13 @@ export default async function ProductsPage({ searchParams }: PageProps) {
           )}
 
           <div
-            className="row text-center justify-content-center g-4"
+            className="hp-product-grid mt-4"
             id="product-grid"
           >
             {result.data.length > 0 ? (
               result.data.map((p) => <ProductTile key={p.id} product={p} />)
             ) : (
-              <h4>No products found</h4>
+              <h4 style={{ color: "var(--hp-text-brown)" }}>No products found</h4>
             )}
           </div>
 
@@ -220,32 +221,37 @@ function ProductTile({ product }: { product: ProductCard }) {
   const href = `/products/${product.slug ?? ""}`;
   const name = product.name ?? "Product";
   return (
-    <div className="col-6 col-sm-4 col-md-3 col-lg-3">
-      <div className="category-item-annivesary">
-        <Link href={href}>
-          <div className="birthday-item">
-            {/* Use plain <img> to keep markup identical to Blade. Swap to next/image later if you want. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageSrc(product.image)}
-              className="default-img"
-              alt={`${name} - Personalised Wooden Gift | Vishwakarma Gifts`}
-              loading="lazy"
-            />
-          </div>
-        </Link>
-
-        <div className="artificial-engvraed">
-          <Link href={href}>
-            <p>{name}</p>
-            <div className="product-price">
-              <h2>₹{formatINR(product.finalPrice)}</h2>
-              <h6>₹{formatINR(product.price)}</h6>
-            </div>
-          </Link>
+    <Link
+      href={href}
+      className="hp-product-card"
+      style={{ textDecoration: "none", textAlign: "left" }}
+    >
+      <div className="hp-product-img-wrap">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageSrc(product.image)}
+          alt={`${name} - Personalised Wooden Gift`}
+          loading="lazy"
+        />
+        <div className="hp-quick-view">Quick View</div>
+      </div>
+      <div className="hp-product-info">
+        <h3 className="hp-product-title">{name}</h3>
+        <div className="hp-product-rating">
+          <i className="fa-solid fa-star"></i>
+          <i className="fa-solid fa-star"></i>
+          <i className="fa-solid fa-star"></i>
+          <i className="fa-solid fa-star"></i>
+          <i className="fa-solid fa-star"></i>
+        </div>
+        <div className="hp-product-price-wrap">
+          <span className="hp-price-final">₹{formatINR(product.finalPrice)}</span>
+          {product.price && product.price > product.finalPrice && (
+            <span className="hp-price-old">₹{formatINR(product.price)}</span>
+          )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

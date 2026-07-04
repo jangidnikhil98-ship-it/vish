@@ -653,7 +653,7 @@ export default function CheckoutClient({
       />
 
       <div className="container checkout-container">
-        <div className="d-flex justify-content-between align-items-center mb-4 px-2">
+        <div className="d-flex justify-content-between align-items-center mb-4 px-2 flex-wrap gap-2">
           <h1 style={{ fontSize: '2rem', fontWeight: 600, color: '#3b2512', margin: 0, letterSpacing: '-0.02em' }}>Checkout</h1>
           <Link href="/login?redirect=/checkout" className="donate-btn">
             Log in for faster checkout

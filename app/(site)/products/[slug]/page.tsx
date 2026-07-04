@@ -9,6 +9,7 @@ import {
 } from "@/lib/queries/products";
 import JsonLd from "@/app/components/JsonLd";
 import { Gallery, Form } from "./ProductDetailsClient";
+import { ProductReviewsClient } from "./ProductReviewsClient";
 import "./product-details.css";
 
 const SITE_URL = (
@@ -89,24 +90,7 @@ export async function generateMetadata({
   };
 }
 
-/* ---------- Star rating display ---------- */
-function StarRow({ rating }: { rating: number }) {
-  const full = Math.floor(rating);
-  const hasHalf = rating - full >= 0.5;
-  const empty = 5 - full - (hasHalf ? 1 : 0);
-  return (
-    <>
-      {Array.from({ length: full }, (_, i) => (
-        <span key={`f-${i}`}>★</span>
-      ))}
-      {hasHalf && <span>☆</span>}
-      {Array.from({ length: empty }, (_, i) => (
-        <span key={`e-${i}`}>☆</span>
-      ))}
-    </>
-  );
-}
-
+import { StarRow } from "./StarRow";
 /* ---------- Page ---------- */
 export default async function ProductDetailsPage({ params }: PageProps) {
   const { slug } = await params;
@@ -313,23 +297,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
           <h3 className="premium-section-title">Customer Reviews</h3>
           <div className="row justify-content-center">
             <div className="col-md-8">
-              {product.reviews.length === 0 ? (
-                <p className="text-center text-muted">No reviews available yet.</p>
-              ) : (
-                product.reviews.map((r, idx) => (
-                  <div key={idx} className="premium-review-card">
-                    <div className="d-flex align-items-center mb-2">
-                      <strong style={{ color: 'var(--color-premium-brown)', marginRight: '10px' }}>
-                        {r.firstName ?? ""} {r.lastName ?? ""}
-                      </strong>
-                      <span className="text-warning">
-                        <StarRow rating={r.rating ?? 0} />
-                      </span>
-                    </div>
-                    <p className="mb-0 text-muted">{r.comment}</p>
-                  </div>
-                ))
-              )}
+              <ProductReviewsClient reviews={product.reviews as any} />
             </div>
           </div>
         </div>

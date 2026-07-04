@@ -155,16 +155,16 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
         
         {/* Page Header */}
         <div style={{ textAlign: "center", marginBottom: 30 }}>
-          <div className="order-success-icon" style={{ background: "#fbf3eb", color: "#613a18" }}>
+          <div className="order-success-icon" style={{ background: "#FFFDF9", color: "#3D2B1F" }}>
             <i className="fa-solid fa-orders"></i>
           </div>
-          <h1 style={{ fontSize: "1.8rem", color: "#613a18", fontWeight: 700 }}>Track Your Order &amp; History</h1>
+          <h1 style={{ fontSize: "1.8rem", color: "#3D2B1F", fontWeight: 700 }}>Track Your Order &amp; History</h1>
           <p className="text-muted">Enter your details to track a specific order, or just your email to see your order history.</p>
         </div>
 
         {/* Lookup Form (shown when nothing is loaded or there is an error) */}
         {(!orderData && otherOrders.length === 0) && (
-          <form method="GET" style={{ background: "#faf7f4", padding: 24, borderRadius: 12, border: "1px solid #e9d8c6" }}>
+          <form method="GET" style={{ background: "#FFFDF9", padding: 24, borderRadius: 12, border: "1px solid rgba(201,168,76,0.2)" }}>
             {errorMsg && (
               <div className="alert alert-danger" style={{ fontSize: "0.9rem", padding: "10px 14px", borderRadius: 8, marginBottom: 18 }}>
                 <i className="fa-solid fa-circle-exclamation me-2"></i> {errorMsg}
@@ -208,13 +208,13 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
 
         {/* Render list of orders when searching by email only (no specific order selected yet) */}
         {!orderData && otherOrders.length > 0 && (
-          <div style={{ background: "#faf7f4", padding: 24, borderRadius: 12, border: "1px solid #e9d8c6" }}>
+          <div style={{ background: "#FFFDF9", padding: 24, borderRadius: 12, border: "1px solid rgba(201,168,76,0.2)" }}>
             {errorMsg && (
               <div className="alert alert-danger mb-3" style={{ fontSize: "0.9rem" }}>
                 {errorMsg}
               </div>
             )}
-            <h3 style={{ fontSize: "1.1rem", color: "#613a18", fontWeight: 700, borderBottom: "1px solid #e9d8c6", paddingBottom: 10, marginBottom: 16 }}>
+            <h3 style={{ fontSize: "1.1rem", color: "#3D2B1F", fontWeight: 700, borderBottom: "1px solid rgba(201,168,76,0.2)", paddingBottom: 10, marginBottom: 16 }}>
               <i className="fa-solid fa-clock-rotate-left me-2"></i> Order History for {email}
             </h3>
             <p className="text-muted small mb-4">Click on any order number below to view its tracking details, items list, and live status.</p>
@@ -227,7 +227,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                       <Link
                         href={`/track?orderNumber=${ord.orderNumber}&email=${encodeURIComponent(email)}`}
                         className="fw-bold"
-                        style={{ color: "#8c5b30", textDecoration: "underline", fontSize: "1.05rem" }}
+                        style={{ color: "#C9A84C", textDecoration: "underline", fontSize: "1.05rem" }}
                       >
                         {ord.orderNumber}
                       </Link>
@@ -249,7 +249,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                           ? new Date(ord.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })
                           : ""}
                       </span>
-                      <strong style={{ color: "#613a18" }}>{formatPrice(ord.grandTotal)}</strong>
+                      <strong style={{ color: "#3D2B1F" }}>{formatPrice(ord.grandTotal)}</strong>
                     </div>
                     <div className="mt-3">
                       <Link
@@ -280,10 +280,10 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
             {/* Left side: Main Tracking & Details */}
             <div className="col-lg-8">
               {/* Top Order Summary Bar */}
-              <div className="d-flex justify-content-between align-items-center flex-wrap p-3 mb-4" style={{ background: "#faf7f4", border: "1px solid #e9d8c6", borderRadius: 10 }}>
+              <div className="d-flex justify-content-between align-items-center flex-wrap p-3 mb-4" style={{ background: "#FFFDF9", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 10 }}>
                 <div>
                   <div className="small text-muted">Order Number</div>
-                  <strong style={{ fontSize: "1.1rem", color: "#613a18" }}>{orderData.orderNumber}</strong>
+                  <strong style={{ fontSize: "1.1rem", color: "#3D2B1F" }}>{orderData.orderNumber}</strong>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div className="small text-muted">Placed on</div>
@@ -306,7 +306,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                       className="position-absolute start-0 end-0"
                       style={{
                         height: 4,
-                        background: "#e9d8c6",
+                        background: "rgba(201,168,76,0.2)",
                         top: "50%",
                         transform: "translateY(-50%)",
                         zIndex: -1,
@@ -317,7 +317,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                       className="position-absolute start-0"
                       style={{
                         height: 4,
-                        background: "#613a18",
+                        background: "#3D2B1F",
                         top: "50%",
                         transform: "translateY(-50%)",
                         zIndex: -1,
@@ -333,7 +333,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                           width: 32,
                           height: 32,
                           borderRadius: "50%",
-                          background: "#613a18",
+                          background: "#3D2B1F",
                           color: "#fff",
                           display: "flex",
                           alignItems: "center",
@@ -344,7 +344,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                       >
                         <i className="fa-solid fa-check"></i>
                       </div>
-                      <span className="small fw-semibold" style={{ color: "#613a18" }}>Placed</span>
+                      <span className="small fw-semibold" style={{ color: "#3D2B1F" }}>Placed</span>
                     </div>
 
                     {/* Step 2: Processing */}
@@ -354,7 +354,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                           width: 32,
                           height: 32,
                           borderRadius: "50%",
-                          background: currentStep >= 2 ? "#613a18" : "#e9d8c6",
+                          background: currentStep >= 2 ? "#3D2B1F" : "rgba(201,168,76,0.2)",
                           color: currentStep >= 2 ? "#fff" : "#8c7e73",
                           display: "flex",
                           alignItems: "center",
@@ -369,7 +369,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                           <i className="fa-solid fa-gear"></i>
                         )}
                       </div>
-                      <span className="small fw-semibold" style={{ color: currentStep >= 2 ? "#613a18" : "#8c7e73" }}>Processing</span>
+                      <span className="small fw-semibold" style={{ color: currentStep >= 2 ? "#3D2B1F" : "#8c7e73" }}>Processing</span>
                     </div>
 
                     {/* Step 3: Shipped / Completed */}
@@ -379,7 +379,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                           width: 32,
                           height: 32,
                           borderRadius: "50%",
-                          background: currentStep >= 3 ? "#2e7d32" : "#e9d8c6",
+                          background: currentStep >= 3 ? "#2e7d32" : "rgba(201,168,76,0.2)",
                           color: currentStep >= 3 ? "#fff" : "#8c7e73",
                           display: "flex",
                           alignItems: "center",
@@ -427,7 +427,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
 
               {/* Details table */}
               <div className="order-success-summary" style={{ paddingBottom: 10, borderBottom: "none" }}>
-                <h3 style={{ borderBottom: "1px solid #f1e6db", paddingBottom: 8, marginBottom: 12 }}>Items Summary</h3>
+                <h3 style={{ borderBottom: "1px solid rgba(201,168,76,0.2)", paddingBottom: 8, marginBottom: 12 }}>Items Summary</h3>
                 <ul>
                   {itemsData.map((item, idx) => (
                     <li key={idx}>
@@ -468,15 +468,15 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                <div className="d-flex justify-content-between mt-3 pt-2" style={{ borderTop: "1px solid #f1e6db" }}>
+                <div className="d-flex justify-content-between mt-3 pt-2" style={{ borderTop: "1px solid rgba(201,168,76,0.2)" }}>
                   <strong>Grand Total</strong>
-                  <strong style={{ fontSize: "1.1rem", color: "#613a18" }}>{formatPrice(orderData.grandTotal)}</strong>
+                  <strong style={{ fontSize: "1.1rem", color: "#3D2B1F" }}>{formatPrice(orderData.grandTotal)}</strong>
                 </div>
               </div>
 
               {/* Shipping Address details */}
-              <div className="mt-4 p-3" style={{ background: "#faf7f4", borderRadius: 10, border: "1px solid #e9d8c6" }}>
-                <h3 style={{ fontSize: "0.95rem", color: "#613a18", fontWeight: 700, marginBottom: 8 }}>Delivery Address</h3>
+              <div className="mt-4 p-3" style={{ background: "#FFFDF9", borderRadius: 10, border: "1px solid rgba(201,168,76,0.2)" }}>
+                <h3 style={{ fontSize: "0.95rem", color: "#3D2B1F", fontWeight: 700, marginBottom: 8 }}>Delivery Address</h3>
                 <div className="small" style={{ lineHeight: 1.5 }}>
                   <div><strong>{orderData.shippingFirstName} {orderData.shippingLastName ?? ""}</strong></div>
                   <div>{orderData.shippingApartment ? `${orderData.shippingApartment}, ` : ""}{orderData.shippingAddress}</div>
@@ -488,8 +488,8 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
 
             {/* Right side: Guest Order History Sidebar */}
             <div className="col-lg-4">
-              <div className="p-3" style={{ background: "#faf7f4", border: "1px solid #e9d8c6", borderRadius: 10, position: "sticky", top: 100 }}>
-                <h3 style={{ fontSize: "1rem", color: "#613a18", fontWeight: 700, borderBottom: "1px solid #e9d8c6", paddingBottom: 10, marginBottom: 12 }}>
+              <div className="p-3" style={{ background: "#FFFDF9", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 10, position: "sticky", top: 100 }}>
+                <h3 style={{ fontSize: "1rem", color: "#3D2B1F", fontWeight: 700, borderBottom: "1px solid rgba(201,168,76,0.2)", paddingBottom: 10, marginBottom: 12 }}>
                   <i className="fa-solid fa-clock-rotate-left me-2"></i> Order History
                 </h3>
                 <p className="text-muted small">All orders placed with the email <strong>{email}</strong>:</p>
@@ -503,7 +503,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                           key={oIdx}
                           style={{
                             background: isCurrent ? "#fff" : "transparent",
-                            border: isCurrent ? "1px solid #613a18" : "1px solid transparent",
+                            border: isCurrent ? "1px solid #3D2B1F" : "1px solid transparent",
                             borderRadius: 8,
                             padding: "8px 12px",
                             marginBottom: 8,
@@ -511,14 +511,14 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                         >
                           <div className="d-flex justify-content-between align-items-start">
                             {isCurrent ? (
-                              <strong className="small" style={{ color: "#613a18" }}>
+                              <strong className="small" style={{ color: "#3D2B1F" }}>
                                 {ord.orderNumber}
                               </strong>
                             ) : (
                               <Link
                                 href={`/track?orderNumber=${ord.orderNumber}&email=${encodeURIComponent(email)}`}
                                 className="small fw-semibold"
-                                style={{ color: "#8c5b30", textDecoration: "underline" }}
+                                style={{ color: "#C9A84C", textDecoration: "underline" }}
                               >
                                 {ord.orderNumber}
                               </Link>
@@ -543,7 +543,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
                             <strong>{formatPrice(ord.grandTotal)}</strong>
                           </div>
                           {isCurrent && (
-                            <div className="mt-1" style={{ fontSize: "0.7rem", color: "#613a18", fontWeight: 600 }}>
+                            <div className="mt-1" style={{ fontSize: "0.7rem", color: "#3D2B1F", fontWeight: 600 }}>
                               <i className="fa-solid fa-eye me-1"></i> Currently Viewing
                             </div>
                           )}
@@ -567,7 +567,7 @@ export default async function TrackOrderPage({ searchParams }: PageProps) {
         )}
 
         {/* Footer actions */}
-        <div className="order-success-actions mt-4 pt-3" style={{ borderTop: "1px dashed #e9d8c6" }}>
+        <div className="order-success-actions mt-4 pt-3" style={{ borderTop: "1px dashed rgba(201,168,76,0.2)" }}>
           <Link href="/products" className="btn-primary-themed" style={{ textDecoration: "none" }}>
             Continue Shopping
           </Link>

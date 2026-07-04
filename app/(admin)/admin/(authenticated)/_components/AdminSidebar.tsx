@@ -224,6 +224,22 @@ export default function AdminSidebar() {
                 </Link>
               </li>
 
+              {/* Reviews */}
+              <li className="sidebar-list">
+                <Link className={cls("/admin/reviews")} href="/admin/reviews">
+                  <svg className="stroke-icon">
+                    <use href="/backend/svg/icon-sprite.svg#stroke-editors" />
+                  </svg>
+                  <svg className="fill-icon">
+                    <use href="/backend/svg/icon-sprite.svg#stroke-editors" />
+                  </svg>
+                  <span>Reviews</span>
+                  <div className="according-menu">
+                    <i className="fa fa-angle-right" />
+                  </div>
+                </Link>
+              </li>
+
               {/* Inquiries (Contact Us) */}
               <li className="sidebar-list">
                 <Link

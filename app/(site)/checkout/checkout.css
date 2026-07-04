@@ -149,7 +149,8 @@
 }
 
 .checkout-container .review-product-img-container {
-  flex: 0 0 auto;
+  flex: 0 0 72px;
+  width: 72px;
   position: relative;
 }
 
@@ -182,6 +183,7 @@
 .checkout-container .personalized-wooden-slice {
   flex: 1 1 auto;
   font-size: 0.95rem;
+  min-width: 0;
 }
 
 .checkout-container .personalized-wooden-slice strong {
@@ -201,6 +203,7 @@
   font-weight: 600;
   color: #3b2512;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .checkout-container .totlal-amountdata,
