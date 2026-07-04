@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import "./homepage.css";
 
 const formatINR = (n) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2 }).format(n);
@@ -11,38 +12,39 @@ const testimonials = [
   {
     name: "Bhanu Jangid",
     image: "/img/bhanu.webp",
-    text: "“I ordered a custom wooden engraved photo frame from Vishwakarma Gifts and the quality exceeded my expectations. The engraving was clean, the wood finish was premium, and delivery was on time. One of the best websites for personalized wooden gifts in India.”",
+    text: "“I ordered a custom wooden engraved photo frame from Vishwakarma Gifts and the quality exceeded my expectations. The engraving was clean, the wood finish was premium, and delivery was on time.”",
+    rating: 5,
   },
   {
     name: "Krishan Kumawat",
     image: "/img/krish.webp",
-    text: "“Vishwakarma Gifts offers beautiful customized wooden engraving gifts. I ordered a name-engraved wooden plaque and it looked elegant and classy. Perfect for gifting on birthdays and special occasions.”",
+    text: "“Vishwakarma Gifts offers beautiful customized wooden engraving gifts. I ordered a name-engraved wooden plaque and it looked elegant and classy. Perfect for gifting.”",
+    rating: 5,
   },
   {
     name: "Abhishek",
     image: "/img/abhi.webp",
-    text: "“I surprised my wife with a personalized wooden photo frame from Vishwakarma Gifts. The detailing was outstanding and the product felt premium. Fast delivery and great packaging. Highly recommended!”",
+    text: "“I surprised my wife with a personalized wooden photo frame from Vishwakarma Gifts. The detailing was outstanding and the product felt premium. Highly recommended!”",
+    rating: 5,
   },
   {
     name: "Abhi",
     image: "/img/abhi1.webp",
-    text: "“I ordered multiple products including a personalized wooden keychain and photo stand. The craftsmanship was excellent and the engraving was very precise. Vishwakarma Gifts is now my favorite store for custom wooden gifts online.”",
+    text: "“I ordered multiple products including a personalized wooden keychain and photo stand. The craftsmanship was excellent and the engraving was very precise.”",
+    rating: 4,
   },
   {
     name: "Ankit",
     image: "/img/ankit.webp",
-    text: "“Searching for a reliable site for custom wooden engraved gifts, I found Vishwakarma Gifts. Easy customization, smooth checkout, and timely delivery across India. Totally satisfied with my purchase.”",
+    text: "“Searching for a reliable site for custom wooden engraved gifts, I found Vishwakarma Gifts. Easy customization, smooth checkout, and timely delivery across India.”",
+    rating: 5,
   },
-  {
-    name: "Chinnu",
-    image: "/img/sachin.webp",
-    text: "“The personalized wooden gift from Vishwakarma Gifts was beautifully crafted. The eco-friendly wooden material and neat engraving made it a perfect gift for birthdays and festivals.”",
-  },
-  {
-    name: "Hemant",
-    image: "/img/hema.webp",
-    text: "“Excellent service and premium quality products. The team at Vishwakarma Gifts helped me with customization and delivered exactly what I wanted. Best personalized gift store in India.”",
-  },
+];
+
+const occasions = [
+  { name: "Birthday", image: "/img/brithday.webp", link: "/products?type=birthday" },
+  { name: "Anniversary", image: "/img/anniversyimag.webp", link: "/products?type=wedding-anniversary" },
+  { name: "Corporate", image: "/img/gift-image.webp", link: "/products?type=corporate-gifts" },
 ];
 
 /**
@@ -65,10 +67,15 @@ export default function HomePage({
   banners = [],
   aboutHeading = "About Vishwakarma Gifts",
   aboutContent = "",
+  workshopVideo = {
+    thumbnailUrl: "/img/workshop.webp",
+    videoUrl: "",
+    subtitle: "BEHIND THE CRAFT",
+    title: "Two minutes inside\nour workshop."
+  }
 }) {
   useEffect(() => {
     let aosTries = 0;
-    let owlTries = 0;
     let bsTries = 0;
 
     const initAOS = () => {
@@ -89,14 +96,6 @@ export default function HomePage({
       }
     };
 
-    // Hero carousel: Bootstrap's auto-init via `data-bs-ride="carousel"`
-    // hooks into `window.load`, but with the bundle loaded async (Next.js
-    // `afterInteractive`) that listener is often missed. Even when we call
-    // `cycle()` manually, autoplay can still be skipped on mobile Safari
-    // due to `prefers-reduced-motion`. To make autoplay + swipe rock-solid,
-    // we drive everything ourselves with a setInterval + a tiny touch
-    // handler — Bootstrap's CSS animation for `.carousel-item` keeps the
-    // visual transition.
     let heroIntervalId = null;
     const heroEl = document.getElementById("carouselExampleCaptions");
 
@@ -136,14 +135,13 @@ export default function HomePage({
 
     const startHeroAutoplay = () => {
       if (!heroEl || heroIntervalId) return;
-      heroIntervalId = setInterval(goNextSlide, 3000);
+      heroIntervalId = setInterval(goNextSlide, 4000);
     };
 
     const initHeroCarousel = () => {
       if (typeof window === "undefined" || !heroEl) return;
       const bs = window.bootstrap;
       if (bs && bs.Carousel) {
-        // Prime the instance so dots/prev/next from data-bs attrs share state.
         bs.Carousel.getOrCreateInstance(heroEl, {
           interval: false,
           touch: false,
@@ -154,12 +152,10 @@ export default function HomePage({
       } else if (bsTries++ < 60) {
         setTimeout(initHeroCarousel, 150);
       } else {
-        // Bootstrap never showed up — autoplay still works via button click.
         startHeroAutoplay();
       }
     };
 
-    // Touch swipe handler — independent of Bootstrap so it's always available.
     let touchStartX = 0;
     let touchStartY = 0;
     const onTouchStart = (e) => {
@@ -171,7 +167,6 @@ export default function HomePage({
       const t = e.changedTouches[0];
       const dx = t.clientX - touchStartX;
       const dy = t.clientY - touchStartY;
-      // Treat as a horizontal swipe only when X movement clearly dominates.
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
         if (dx < 0) goNextSlide();
         else goPrevSlide();
@@ -182,41 +177,8 @@ export default function HomePage({
       heroEl.addEventListener("touchend", onTouchEnd, { passive: true });
     }
 
-    const initOwl = () => {
-      if (typeof window === "undefined") return;
-      const $ = window.jQuery;
-      if ($ && typeof $.fn?.owlCarousel === "function") {
-        const initCarousel = (selector, itemsDesktop) => {
-          const el = $(selector);
-          if (el.length && !el.hasClass("owl-loaded")) {
-            el.owlCarousel({
-              loop: true,
-              margin: 10,
-              nav: true,
-              dots: true,
-              autoplay: true,
-              autoplayTimeout: 3000,
-              autoplayHoverPause: true,
-              touchDrag: true,
-              mouseDrag: true,
-              responsive: {
-                0: { items: 1 },
-                600: { items: 2 },
-                1000: { items: itemsDesktop },
-              },
-            });
-          }
-        };
-        initCarousel(".owl-carousel5", 4);
-        initCarousel(".owl-carousel2", 3);
-      } else if (owlTries++ < 40) {
-        setTimeout(initOwl, 150);
-      }
-    };
-
     initAOS();
     initHeroCarousel();
-    initOwl();
 
     return () => {
       if (heroIntervalId) clearInterval(heroIntervalId);
@@ -227,429 +189,436 @@ export default function HomePage({
     };
   }, []);
 
-        const finalBanners = banners.length > 0 ? banners : [
-          {
-            image: "/img/banner.webp",
-            span: "Choose the Perfect Personalized Wooden Gifts",
-            title: "Create lasting memories with custom \n wooden engraved gifts",
-            description: "Shop beautifully handcrafted personalized wooden photo frames, plaques, and unique gifts for birthdays, weddings, anniversaries, and special occasions.",
-            link: "/products/customizable-engraved-on-wood-photo-frame-round-shape"
-          },
-          {
-            image: "/img/banner2.webp",
-            span: "Premium Personalized Corporate Gifting Solutions",
-            title: "Custom Engraved Corporate \n Gift Sets",
-            description: "Impress your clients and team with custom-branded smart bottles, executive diaries, keychains, and pens tailored to reflect your brand's professionalism.",
-            link: "/products?type=corporate-gifts"
-          }
-        ];
+  const finalBanners = banners.length > 0 ? banners : [
+    {
+      image: "/img/banner.webp",
+      span: "Choose the Perfect Personalized Wooden Gifts",
+      title: "Create lasting memories with custom wooden gifts",
+      description: "Shop beautifully handcrafted personalized wooden photo frames, plaques, and unique gifts.",
+      link: "/products/customizable-engraved-on-wood-photo-frame-round-shape"
+    },
+    {
+      image: "/img/banner2.webp",
+      span: "Premium Personalized Corporate Gifting Solutions",
+      title: "Custom Engraved Corporate Gift Sets",
+      description: "Impress your clients and team with custom-branded smart bottles, executive diaries, and pens.",
+      link: "/products?type=corporate-gifts"
+    }
+  ];
 
-        return (
-          <>
-            {/* HERO */}
-            <section className="hero-banner">
-              <div
-                id="carouselExampleCaptions"
-                className="carousel slide"
-              >
-                <div className="carousel-indicators">
-                  {finalBanners.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      data-bs-target="#carouselExampleCaptions"
-                      data-bs-slide-to={idx}
-                      className={idx === 0 ? "active" : ""}
-                      aria-current={idx === 0 ? "true" : undefined}
-                      aria-label={`Slide ${idx + 1}`}
-                    ></button>
-                  ))}
-                </div>
-                <div className="carousel-inner">
-                  {finalBanners.map((b, idx) => (
-                    <div key={idx} className={`carousel-item ${idx === 0 ? "active" : ""}`}>
-                      <Image
-                        src={b.image}
-                        className={`d-block w-100 banner-img-${idx}`}
-                        alt={b.span || "Banner slide"}
-                        width={1920}
-                        height={800}
-                        priority={idx === 0}
-                      />
-                      <div className="carousel-caption ">
-                        <span>{b.span}</span>
-                        <h1 className="banner-h1">
-                          {b.title.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
-                            <span key={lineIdx}>
-                              {line}
-                              {lineIdx < b.title.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
-                            </span>
-                          ))}
-                        </h1>
-                        <p>
-                          {b.description.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
-                            <span key={lineIdx}>
-                              {line}
-                              {lineIdx < b.description.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
-                            </span>
-                          ))}
-                        </p>
-                        <Link href={b.link} className="hero-shop-btn">
-                          <button>Shop Now</button>
+  return (
+    <div className="hp-container">
+      {/* 1. HERO SECTION */}
+      <section className="hp-hero">
+        <div id="carouselExampleCaptions" className="carousel slide carousel-fade">
+          <div className="carousel-indicators">
+            {finalBanners.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                data-bs-target="#carouselExampleCaptions"
+                data-bs-slide-to={idx}
+                className={idx === 0 ? "active" : ""}
+                aria-current={idx === 0 ? "true" : undefined}
+                aria-label={`Slide ${idx + 1}`}
+              ></button>
+            ))}
+          </div>
+          <div className="carousel-inner">
+            {finalBanners.map((b, idx) => (
+              <div key={idx} className={`carousel-item ${idx === 0 ? "active" : ""}`}>
+                <Image
+                  src={b.image}
+                  className="d-block w-100"
+                  alt={b.span || "Banner slide"}
+                  width={1920}
+                  height={800}
+                  priority={idx === 0}
+                />
+                <div className="hp-hero-overlay">
+                  <div className="container">
+                    <div className="hp-hero-content" data-aos="fade-up">
+                      <span className="hp-hero-subtitle">{b.span}</span>
+                      <h1 className="hp-hero-title hp-heading">
+                        {b.title.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
+                          <span key={lineIdx}>
+                            {line}
+                            {lineIdx < b.title.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
+                          </span>
+                        ))}
+                      </h1>
+                      <p className="hp-hero-desc">
+                        {b.description.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
+                          <span key={lineIdx}>
+                            {line}
+                            {lineIdx < b.description.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
+                          </span>
+                        ))}
+                      </p>
+                      <div className="hp-hero-actions">
+                        <Link href={b.link} className="hp-btn hp-btn-primary">
+                          Shop Gifts
+                        </Link>
+                        <Link href="/products" className="hp-btn hp-btn-outline">
+                          Explore Collections
                         </Link>
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-          <button
-            className="carousel-control-prev"
-            type="button"
-            data-bs-target="#carouselExampleCaptions"
-            data-bs-slide="prev"
-          >
-            <span
-              className="carousel-control-prev-icon"
-              aria-hidden="true"
-            ></span>
+              </div>
+            ))}
+          </div>
+          <button className="carousel-control-prev d-none" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev">
+            <span className="carousel-control-prev-icon" aria-hidden="true"></span>
             <span className="visually-hidden">Previous</span>
           </button>
-          <button
-            className="carousel-control-next"
-            type="button"
-            data-bs-target="#carouselExampleCaptions"
-            data-bs-slide="next"
-          >
-            <span
-              className="carousel-control-next-icon"
-              aria-hidden="true"
-            ></span>
+          <button className="carousel-control-next d-none" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next">
+            <span className="carousel-control-next-icon" aria-hidden="true"></span>
             <span className="visually-hidden">Next</span>
           </button>
         </div>
       </section>
 
-      {/* SHIPPING / FEATURES STRIP */}
-      <div className="shipping-system">
-        <section className="shipping-categry">
+      {/* 2. TRUST STRIP */}
+      <section className="hp-trust">
+        <div className="container">
+          <div className="row g-4">
+            <div className="col-6 col-md-3" data-aos="fade-up" data-aos-delay="0">
+              <div className="hp-trust-item">
+                <div className="hp-trust-icon"><i className="fa-solid fa-truck-fast"></i></div>
+                <div className="hp-trust-title">Free Delivery</div>
+                <div className="hp-trust-desc">Orders Over ₹299</div>
+              </div>
+            </div>
+            <div className="col-6 col-md-3" data-aos="fade-up" data-aos-delay="100">
+              <div className="hp-trust-item">
+                <div className="hp-trust-icon"><i className="fa-solid fa-rotate-left"></i></div>
+                <div className="hp-trust-title">Easy Returns</div>
+                <div className="hp-trust-desc">Within 7 Days</div>
+              </div>
+            </div>
+            <div className="col-6 col-md-3" data-aos="fade-up" data-aos-delay="200">
+              <div className="hp-trust-item">
+                <div className="hp-trust-icon"><i className="fa-solid fa-shield-halved"></i></div>
+                <div className="hp-trust-title">Secure Payment</div>
+                <div className="hp-trust-desc">100% Safe Checkout</div>
+              </div>
+            </div>
+            <div className="col-6 col-md-3" data-aos="fade-up" data-aos-delay="300">
+              <div className="hp-trust-item">
+                <div className="hp-trust-icon"><i className="fa-solid fa-headset"></i></div>
+                <div className="hp-trust-title">24/7 Support</div>
+                <div className="hp-trust-desc">Always Here To Help</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. QUICK CATEGORY NAVIGATION */}
+      <section className="hp-categories hp-section">
+        <div className="container">
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">Explore by Category</h2>
+            <p className="hp-section-subtitle">Find the perfect gift for every special moment</p>
+          </div>
+          <div className="hp-cat-grid">
+            {categories.slice(0, 8).map((cat, idx) => (
+              <Link
+                key={idx}
+                href={`/products?type=${cat.type}`}
+                className="hp-cat-card"
+                data-aos="fade-up"
+                data-aos-delay={idx * 100}
+              >
+                <div className="hp-cat-img-wrapper">
+                  <Image
+                    src={cat.image}
+                    alt={cat.name}
+                    width={400}
+                    height={300}
+                    loading="lazy"
+                  />
+                </div>
+                <div className="hp-cat-name">{cat.name}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. FEATURED COLLECTIONS (Using newArrivals) */}
+      <section className="hp-featured hp-section">
+        <div className="container">
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">Featured Collections</h2>
+            <p className="hp-section-subtitle">Handpicked selections to inspire your gifting</p>
+          </div>
+          <div className="hp-featured-grid">
+            {newArrivals.slice(0, 3).map((product, idx) => (
+              <Link
+                key={product.id}
+                href={product.slug ? `/products/${product.slug}` : "/products"}
+                className={`hp-featured-card ${idx === 0 ? "large" : ""}`}
+                data-aos="fade-up"
+                data-aos-delay={idx * 100}
+              >
+                <img src={product.image} alt={product.name} loading="lazy" />
+                <div className="hp-featured-overlay">
+                  <h3 className="hp-featured-title hp-heading">{product.name}</h3>
+                  <div className="hp-featured-link">
+                    Shop Now <i className="fa-solid fa-arrow-right"></i>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. BEST SELLERS */}
+      <section className="hp-bestsellers hp-section">
+        <div className="container">
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">Bestselling Gifts</h2>
+            <p className="hp-section-subtitle">Our most loved personalized creations</p>
+          </div>
+          <div className="hp-product-grid">
+            {bestsellers.slice(0, 8).map((product, idx) => (
+              <Link
+                key={product.id}
+                href={product.slug ? `/products/${product.slug}` : "/products"}
+                className="hp-product-card"
+                data-aos="fade-up"
+                data-aos-delay={(idx % 4) * 100}
+              >
+                <div className="hp-product-img-wrap">
+                  <img src={product.image} alt={product.name} loading="lazy" />
+                  <div className="hp-quick-view">Quick View</div>
+                </div>
+                <div className="hp-product-info">
+                  <h3 className="hp-product-title">{product.name}</h3>
+                  <div className="hp-product-rating">
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                  </div>
+                  <div className="hp-product-price-wrap">
+                    <span className="hp-price-final">₹{formatINR(product.finalPrice)}</span>
+                    {product.price && product.price > product.finalPrice && (
+                      <span className="hp-price-old">₹{formatINR(product.price)}</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="text-center mt-5" data-aos="fade-up">
+            <Link href="/products?type=bestseller" className="hp-btn hp-btn-outline">
+              View All Bestsellers
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. OCCASION-BASED SHOPPING */}
+      <section className="hp-occasions hp-section">
+        <div className="container">
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">Shop By Occasion</h2>
+            <p className="hp-section-subtitle">Thoughtful gifts for every milestone</p>
+          </div>
+          <div className="hp-occ-grid">
+            {occasions.map((occ, idx) => (
+              <Link key={idx} href={occ.link} className="hp-occ-card" data-aos="fade-up" data-aos-delay={idx * 100}>
+                <img src={occ.image} alt={`${occ.name} Gifts`} loading="lazy" />
+                <div className="hp-occ-overlay"></div>
+                <div className="hp-occ-content">
+                  <h3 className="hp-occ-title">{occ.name} Gifts</h3>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 7. WORKSHOP VIDEO SECTION */}
+      {workshopVideo && (
+        <section className="hp-workshop-video hp-section">
           <div className="container">
-            <div className="row">
-              <div
-                className="col-md-3"
-                data-aos="fade-up"
-                data-aos-delay="0"
-              >
-                <div className="safe-payment">
-                  <img
-                    src="/img/free-shiping.svg"
-                    className="img-fluid"
-                    alt="free"
-                  />
-                  <h2>Free Delivery</h2>
-                  <p>Orders Over 299</p>
-                </div>
-              </div>
-
-              <div
-                className="col-md-3"
-                data-aos="fade-up"
-                data-aos-delay="100"
-              >
-                <div className="safe-payment">
-                  <img src="/img/refund.svg" className="img-fluid" alt="free" />
-                  <h2>Get Refund</h2>
-                  <p>Within 7 Days Returns</p>
-                </div>
-              </div>
-
-              <div
-                className="col-md-3"
-                data-aos="fade-up"
-                data-aos-delay="200"
-              >
-                <div className="safe-payment">
-                  <img
-                    src="/img/safe-payment.svg"
-                    className="img-fluid"
-                    alt="free"
-                  />
-                  <h2>Safe Payment</h2>
-                  <p>100% Secure Payment</p>
-                </div>
-              </div>
-
-              <div
-                className="col-md-3"
-                data-aos="fade-up"
-                data-aos-delay="300"
-              >
-                <div className="safe-payment">
-                  <img
-                    src="/img/support.svg"
-                    className="img-fluid"
-                    alt="free"
-                  />
-                  <h2>24/7 Support</h2>
-                  <p>Feel Free To Call Us</p>
+            <div className="hp-video-card" data-aos="fade-up">
+              <div className="hp-video-thumbnail">
+                <img src={workshopVideo.thumbnailUrl} alt={workshopVideo.title.replace(/\n/g, ' ')} loading="lazy" />
+                <div className="hp-video-overlay">
+                  <button className="hp-video-play-btn" aria-label="Play video">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 5v14l11-7z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <div className="hp-video-info">
+                    <span className="hp-video-subtitle">{workshopVideo.subtitle}</span>
+                    <h2 className="hp-video-title hp-heading">
+                      {workshopVideo.title.split(/<br\s*\/?>|\\n|\n/i).map((line, lineIdx) => (
+                        <span key={lineIdx}>
+                          {line}
+                          {lineIdx < workshopVideo.title.split(/<br\s*\/?>|\\n|\n/i).length - 1 && <br />}
+                        </span>
+                      ))}
+                    </h2>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
-      </div>
+      )}
 
-      {/* CATEGORY */}
-      <section className="category-section our-category-portrait py-5">
+      {/* 8. WHY CHOOSE US */}
+      <section className="hp-whyus hp-section">
         <div className="container">
-          <div className="our-catgery-heading">
-            <h2>
-              Our Category <span></span>{" "}
-            </h2>
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">The Vishwakarma Promise</h2>
+            <p className="hp-section-subtitle">Why thousands trust us with their memories</p>
           </div>
-          <div className="row text-center justify-content-center g-4 category-slider">
-            {categories.map((cat, idx) => (
-              <div
-                key={idx}
-                className="col-12 col-sm-4 col-md-3 col-lg-3"
+          <div className="hp-why-grid">
+            <div className="hp-why-card" data-aos="fade-up" data-aos-delay="0">
+              <i className="fa-solid fa-tree"></i>
+              <h3 className="hp-why-title">Premium Wood</h3>
+              <p className="hp-why-desc">We source only the finest, eco-friendly materials for a luxurious, lasting finish.</p>
+            </div>
+            <div className="hp-why-card" data-aos="fade-up" data-aos-delay="100">
+              <i className="fa-solid fa-pen-nib"></i>
+              <h3 className="hp-why-title">Precision Engraving</h3>
+              <p className="hp-why-desc">State-of-the-art techniques guarantee flawless detailing on every piece.</p>
+            </div>
+            <div className="hp-why-card" data-aos="fade-up" data-aos-delay="200">
+              <i className="fa-solid fa-heart"></i>
+              <h3 className="hp-why-title">Handcrafted with Love</h3>
+              <p className="hp-why-desc">Each item is individually crafted and inspected to ensure perfection.</p>
+            </div>
+            <div className="hp-why-card" data-aos="fade-up" data-aos-delay="300">
+              <i className="fa-solid fa-gift"></i>
+              <h3 className="hp-why-title">Elegant Packaging</h3>
+              <p className="hp-why-desc">Your gifts arrive beautifully boxed, ready to impress the recipient immediately.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 9. TRENDING PICKS (Using remaining newArrivals) */}
+      <section className="hp-featured hp-section">
+        <div className="container">
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">Trending Now</h2>
+            <p className="hp-section-subtitle">What others are gifting right now</p>
+          </div>
+          <div className="hp-product-grid">
+            {newArrivals.slice(3, 7).map((product, idx) => (
+              <Link
+                key={product.id}
+                href={product.slug ? `/products/${product.slug}` : "/products"}
+                className="hp-product-card"
                 data-aos="fade-up"
-                data-aos-duration={500 + idx * 100}
+                data-aos-delay={(idx % 4) * 100}
               >
-                <div className="category-item">
-                  <Link href={`/products?type=${cat.type}`}>
-                    <Image
-                      src={cat.image}
-                      alt={cat.name}
-                      width={320}
-                      height={320}
-                      loading="lazy"
-                    />
-                    <p>{cat.name}</p>
-                  </Link>
+                <div className="hp-product-img-wrap">
+                  <img src={product.image} alt={product.name} loading="lazy" />
+                  <div className="hp-quick-view">Quick View</div>
                 </div>
-              </div>
+                <div className="hp-product-info">
+                  <h3 className="hp-product-title">{product.name}</h3>
+                  <div className="hp-product-price-wrap">
+                    <span className="hp-price-final">₹{formatINR(product.finalPrice)}</span>
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* WHY CHOOSE US / ABOUT */}
-      <section className="why-chooseus">
+      {/* 9.5 INSTAGRAM REELS (Placeholder) */}
+      <section className="hp-instagram hp-section">
         <div className="container">
-          <div className="row">
-            <div
-              className="col-md-6"
-              data-aos="fade-up"
-              data-aos-duration="600"
-            >
-              <div className="there-many">
-                <img
-                  src="/img/about.webp"
-                  className="img-fluid"
-                  alt="About Vishwakarma Gifts — handcrafted wooden gifts"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </div>
-            <div
-              className="col-md-6"
-              data-aos="fade-up"
-              data-aos-duration="500"
-            >
-              <div className="proud-premium">
-                <h2>{aboutHeading}</h2>
-                <p style={{ whiteSpace: "pre-line" }}>
-                  {aboutContent || `Vishwakarma Gifts is a trusted online destination for personalized wooden engraved gifts in India, crafted with care, creativity, and precision. We specialize in custom wooden photo frames, engraved wooden plaques, name boards, keychains, and unique gifting solutions designed to turn special moments into lifelong memories.
-
-Each product at Vishwakarma Gifts is handcrafted using premium-quality wood and customized with advanced engraving techniques to ensure fine detailing and long-lasting finish. Whether it's a birthday, wedding, anniversary, Mother's Day, or a special occasion, our personalized wooden gifts add a warm and emotional touch to every celebration.
-
-We believe that gifts should be meaningful, eco-friendly, and timeless. That's why our wooden engraved products are thoughtfully designed to reflect love, emotions, and individuality. With easy customization, secure online payments, and reliable delivery across India, Vishwakarma Gifts makes personalized gifting simple and special.
-
-Choose Vishwakarma Gifts to celebrate your moments with beautifully crafted customized wooden gifts that speak from the heart.`}
-                </p>
-              </div>
-            </div>
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">Follow Us On Instagram</h2>
+            <p className="hp-section-subtitle">@vishwakarmagifts - Join our community of gift lovers</p>
           </div>
-        </div>
-      </section>
-
-      {/* NEW ARRIVALS */}
-      <section className="category-section Bestsaller_section py-5">
-        <div className="container">
-          <div
-            className="our-catgery-heading alltimebest"
-            data-aos="fade-up"
-            data-aos-duration="700"
-          >
-            <h2>
-              New Arrivals <span></span>
-            </h2>
-
-            <Link href="/products" className="view-all-btn">
-              View All Products
-            </Link>
-          </div>
-
-          <div className="row text-center justify-content-center g-4">
-            {newArrivals.length > 0 ? (
-              newArrivals.map((product, idx) => (
-                <div
-                  key={product.id}
-                  className="col-6 col-sm-4 col-md-3 col-lg-3"
-                  data-aos="fade-up"
-                  data-aos-delay={(idx % 4) * 100}
-                >
-                  <div className="category-item-annivesary">
-                    <Link href={product.slug ? `/products/${product.slug}` : "/products"}>
-                      <div className="birthday-item">
-                        <img
-                          loading="lazy"
-                          src={product.image}
-                          className="default-img"
-                          alt={`${product.name} - Personalised Wooden Gift | Vishwakarma Gifts`}
-                          width="300"
-                          height="300"
-                        />
-                      </div>
-                    </Link>
-
-                    <div className="artificial-engvraed">
-                      <Link href={product.slug ? `/products/${product.slug}` : "/products"}>
-                        <p>{product.name}</p>
-
-                        <div className="product-price">
-                          <h2>₹{formatINR(product.finalPrice)}</h2>
-                          {product.price && product.price > product.finalPrice ? (
-                            <h6>₹{formatINR(product.price)}</h6>
-                          ) : null}
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p>No products found.</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* BESTSELLERS */}
-      <section className="category-section Bestsaller_section py-5">
-        <div className="container">
-          <div
-            className="our-catgery-heading alltimebest"
-            data-aos="fade-up"
-            data-aos-duration="700"
-          >
-            <h2>
-              All Time Bestsellers <span></span>
-            </h2>
-
-            <Link href="/products?type=bestseller" className="view-all-btn">
-              View All Bestsellers
-            </Link>
-          </div>
-
-          <div className="row text-center justify-content-center g-4">
-            {bestsellers.length > 0 ? (
-              bestsellers.map((product, idx) => (
-                <div
-                  key={product.id}
-                  className="col-6 col-sm-4 col-md-3 col-lg-3"
-                  data-aos="fade-up"
-                  data-aos-delay={(idx % 4) * 100}
-                >
-                  <div className="category-item-annivesary">
-                    <Link href={product.slug ? `/products/${product.slug}` : "/products?type=bestseller"}>
-                      <div className="birthday-item">
-                        <img
-                          loading="lazy"
-                          src={product.image}
-                          className="default-img"
-                          alt={`${product.name} - Personalised Wooden Gift | Vishwakarma Gifts`}
-                          width="300"
-                          height="300"
-                        />
-                      </div>
-                    </Link>
-
-                    <div className="artificial-engvraed">
-                      <Link href={product.slug ? `/products/${product.slug}` : "/products?type=bestseller"}>
-                        <p>{product.name}</p>
-
-                        <div className="product-price">
-                          <h2>₹{formatINR(product.finalPrice)}</h2>
-                          {product.price && product.price > product.finalPrice ? (
-                            <h6>₹{formatINR(product.price)}</h6>
-                          ) : null}
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p>No products found.</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className="testimonails secP">
-        <div className="container">
-          <div
-            className="premium-domainheading mb-2"
-            data-aos="fade-up"
-            data-aos-duration="700"
-          >
-            <p>Testimonials</p>
-            <h2>
-              {" "}
-              People&rsquo;s Say About Our <br />
-              Gifts <span></span>
-            </h2>
-          </div>
-          <div
-            className="owl-carousel owl-theme owl-carousel2"
-            data-aos="fade-up"
-            data-aos-delay="150"
-          >
-            {testimonials.map((t, i) => (
-              <div className="item" key={i}>
-                <div className="testimonails-slider">
-                  <div className="bcd-slider">
-                    <div className="client-images">
-                      <img src={t.image} className="img-fluid" alt="client" />
-                    </div>
-                    <div className="profile-name-t">
-                      <h6>{t.name}</h6>
-                    </div>
-                  </div>
-
-                  <p>{t.text}</p>
-                  <div className="client-name">
-                    <div className="rating-review">
-                      <i className="fa-solid fa-star"></i>
-                      <i className="fa-solid fa-star"></i>
-                      <i className="fa-solid fa-star"></i>
-                      <i className="fa-solid fa-star"></i>
-                    </div>
-                    <div className="profile-name">
-                      <img
-                        src="/img/quote.svg"
-                        className="img-fluid"
-                        alt="quote"
-                      />
-                    </div>
-                  </div>
+          <div className="hp-insta-grid" data-aos="fade-up" data-aos-delay="100">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="hp-insta-card">
+                <div className="hp-insta-placeholder">
+                  <i className="fa-brands fa-instagram"></i>
+                  <p>Instagram Reel {i}</p>
+                  <span>(Integration ready)</span>
                 </div>
               </div>
             ))}
           </div>
+          <div className="text-center mt-5" data-aos="fade-up">
+            <a href="https://instagram.com/vishwakarmagifts" target="_blank" rel="noopener noreferrer" className="hp-btn hp-btn-primary">
+              <i className="fa-brands fa-instagram me-2"></i> Follow Us
+            </a>
+          </div>
         </div>
       </section>
-    </>
+
+      {/* 10. CUSTOMER TESTIMONIALS */}
+      <section className="hp-testimonials">
+        <div className="container">
+          <div className="hp-section-header" data-aos="fade-up">
+            <h2 className="hp-section-title hp-heading">Words of Love</h2>
+            <p className="hp-section-subtitle">Real experiences from our delighted customers</p>
+          </div>
+          <div id="testimonialCarousel" className="carousel slide pb-5" data-bs-ride="carousel" data-aos="fade-up" data-aos-delay="100">
+            <div className="carousel-indicators hp-testi-indicators">
+              {testimonials.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  data-bs-target="#testimonialCarousel"
+                  data-bs-slide-to={idx}
+                  className={idx === 0 ? "active" : ""}
+                  aria-current={idx === 0 ? "true" : undefined}
+                  aria-label={`Testimonial ${idx + 1}`}
+                ></button>
+              ))}
+            </div>
+            <div className="carousel-inner">
+              {testimonials.map((t, idx) => (
+                <div key={idx} className={`carousel-item ${idx === 0 ? "active" : ""}`}>
+                  <div className="hp-premium-testi-card">
+                    <i className="fa-solid fa-quote-left hp-premium-quote"></i>
+                    <p className="hp-premium-testi-text">{t.text}</p>
+                    <div className="hp-premium-testi-author">
+                      <img src={t.image} alt={t.name} className="hp-premium-testi-img" loading="lazy" />
+                      <div>
+                        <div className="hp-premium-testi-name">{t.name}</div>
+                        <div className="hp-premium-testi-rating">
+                          {[...Array(t.rating)].map((_, i) => (
+                            <i key={i} className="fa-solid fa-star"></i>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="carousel-control-prev hp-testi-control" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
+              <span className="carousel-control-prev-icon" aria-hidden="true" style={{ filter: "invert(1) grayscale(100%) brightness(50%)" }}></span>
+              <span className="visually-hidden">Previous</span>
+            </button>
+            <button className="carousel-control-next hp-testi-control" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
+              <span className="carousel-control-next-icon" aria-hidden="true" style={{ filter: "invert(1) grayscale(100%) brightness(50%)" }}></span>
+              <span className="visually-hidden">Next</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

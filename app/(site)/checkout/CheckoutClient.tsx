@@ -653,9 +653,10 @@ export default function CheckoutClient({
       />
 
       <div className="container checkout-container">
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex justify-content-between align-items-center mb-4 px-2">
+          <h1 style={{ fontSize: '2rem', fontWeight: 600, color: '#3b2512', margin: 0, letterSpacing: '-0.02em' }}>Checkout</h1>
           <Link href="/login?redirect=/checkout" className="donate-btn">
-            Login
+            Log in for faster checkout
           </Link>
         </div>
 
@@ -664,6 +665,11 @@ export default function CheckoutClient({
             className={`status-banner status-banner--${banner.kind}`}
             role={banner.kind === "error" ? "alert" : "status"}
           >
+            {banner.kind === "error" ? (
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            ) : (
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            )}
             {banner.text}
           </div>
         )}
@@ -671,7 +677,7 @@ export default function CheckoutClient({
         <div className="row">
           {/* Left: form */}
           <div className="col-lg-7">
-            <div className="p-4 bg-white border rounded mb-4">
+            <div className="p-4 p-md-5 bg-white border rounded-[16px] mb-4 shadow-sm" style={{ borderColor: '#e9d8c6' }}>
               <form
                 id="checkout-form"
                 noValidate
@@ -679,24 +685,26 @@ export default function CheckoutClient({
                 aria-busy={submitting}
               >
                 <div className="from-typedrt">
-                  <h5>Contact</h5>
-                  <input
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    value={form.email}
-                    onChange={(e) => setField("email", e.target.value)}
-                    className={`form-control mb-0 ${errors.email ? "is-invalid" : ""}`}
-                    placeholder="Email"
-                    required
-                  />
-                  {errors.email && (
-                    <small className="text-danger">{errors.email}</small>
-                  )}
+                  <h5 className="mb-3">Contact Information</h5>
+                  <div className="mb-4">
+                    <input
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      value={form.email}
+                      onChange={(e) => setField("email", e.target.value)}
+                      className={`form-control mb-1 ${errors.email ? "is-invalid" : ""}`}
+                      placeholder="Email Address"
+                      required
+                    />
+                    {errors.email && (
+                      <small className="text-danger">{errors.email}</small>
+                    )}
+                  </div>
 
-                  <h5 className="pt-2 pb-2">Delivery</h5>
+                  <h5 className="pt-3 mb-3 border-top mt-4" style={{ borderColor: '#f0e4d8 !important' }}>Shipping Address</h5>
                   <div className="row mb-3">
-                    <div className="col-md-6">
+                    <div className="col-md-12">
                       <input
                         type="text"
                         name="first_name"
@@ -738,7 +746,7 @@ export default function CheckoutClient({
                     className="form-control mb-3"
                     placeholder="Apartment, suite, landmark (optional)"
                   />
-                  <div className="row mb-3">
+                  <div className="row mb-3 g-2">
                     <div className="col-md-4">
                       <input
                         type="text"
@@ -764,7 +772,7 @@ export default function CheckoutClient({
                         onChange={(e) => setField("state", e.target.value)}
                         required
                       >
-                        <option value="">Select state</option>
+                        <option value="">Select State</option>
                         {states.map((s) => (
                           <option key={s} value={s}>
                             {s}
@@ -827,13 +835,13 @@ export default function CheckoutClient({
                       )
                     }
                     className={`form-control mb-1 ${errors.phone ? "is-invalid" : ""}`}
-                    placeholder="Phone (10 digits)"
+                    placeholder="Phone Number (10 digits)"
                     required
                   />
                   {errors.phone && (
                     <small className="text-danger">{errors.phone}</small>
                   )}
-                  <div className="form-check mb-0 mt-2">
+                  <div className="form-check mb-0 mt-3 d-flex align-items-center gap-2">
                     <input
                       className="form-check-input"
                       type="checkbox"
@@ -841,21 +849,16 @@ export default function CheckoutClient({
                       name="is_save"
                       checked={form.is_save}
                       onChange={(e) => setField("is_save", e.target.checked)}
+                      style={{ cursor: 'pointer', width: '18px', height: '18px', marginTop: 0 }}
                     />
-                    <label className="form-check-label" htmlFor="saveInfo">
+                    <label className="form-check-label text-muted" htmlFor="saveInfo" style={{ cursor: 'pointer', fontSize: '0.9rem' }}>
                       Save this information for next time
                     </label>
                   </div>
                 </div>
 
-                <div className="payment-cardmethod">
-                  <h2>Shipping method</h2>
-                  <p className="text-muted">
-                    Enter your shipping address to view available shipping
-                    methods.
-                  </p>
-
-                  <h5>Payment</h5>
+                <div className="payment-cardmethod border-top pt-4 mt-4" style={{ borderColor: '#f0e4d8 !important' }}>
+                  <h5 className="mb-3">Payment Method</h5>
                 </div>
 
                 {/* ============ Payment-method radio group ============ */}
@@ -863,21 +866,21 @@ export default function CheckoutClient({
                   className="payment-method-group"
                   role="radiogroup"
                   aria-label="Payment method"
-                  style={{ display: "grid", gap: 12, marginBottom: 16 }}
+                  style={{ display: "grid", gap: 12, marginBottom: 24 }}
                 >
                   {/* --- Razorpay --- */}
                   <label
                     className={`payment-method-card${paymentMethod === "razorpay" ? " is-selected" : ""}`}
                     style={{
                       display: "flex",
-                      gap: 12,
+                      gap: 14,
                       alignItems: "flex-start",
-                      padding: 14,
-                      border: `2px solid ${paymentMethod === "razorpay" ? "#603813" : "#e6dfd1"}`,
-                      borderRadius: 10,
-                      background: "#fff",
+                      padding: 16,
+                      border: `2px solid ${paymentMethod === "razorpay" ? "#613a18" : "#e9d8c6"}`,
+                      borderRadius: 12,
+                      background: paymentMethod === "razorpay" ? "#fcf9f5" : "#fff",
                       cursor: "pointer",
-                      transition: "border-color .15s",
+                      transition: "all .2s ease",
                     }}
                   >
                     <input
@@ -886,35 +889,24 @@ export default function CheckoutClient({
                       value="razorpay"
                       checked={paymentMethod === "razorpay"}
                       onChange={() => setPaymentMethod("razorpay")}
-                      style={{ marginTop: 4 }}
+                      style={{ marginTop: 5, accentColor: '#613a18', transform: 'scale(1.2)' }}
                     />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>
-                        Pay Online (UPI · Cards · NetBanking · Wallets)
+                      <div style={{ fontWeight: 600, color: '#3b2512', fontSize: '1.05rem', marginBottom: '4px' }}>
+                        Pay Online (Secure)
                       </div>
-                      <small className="text-muted">
-                        Secure payment via Razorpay. Includes GPay, PhonePe,
-                        Paytm, BHIM, Visa, MasterCard, RuPay.
+                      <small className="text-muted d-block mb-3" style={{ fontSize: '0.85rem' }}>
+                        UPI, Cards, NetBanking, Wallets securely via Razorpay.
                       </small>
-                      <div className="d-flex gap-2 mt-2">
+                      <div className="d-flex gap-2">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://img.icons8.com/color/48/visa.png"
-                          height="22"
-                          alt="Visa"
-                        />
+                        <img src="https://img.icons8.com/color/48/google-pay-india.png" height="24" alt="GPay" />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://img.icons8.com/color/48/mastercard-logo.png"
-                          height="22"
-                          alt="MasterCard"
-                        />
+                        <img src="https://img.icons8.com/color/48/visa.png" height="24" alt="Visa" />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://img.icons8.com/color/48/000000/rupay.png"
-                          height="22"
-                          alt="RuPay"
-                        />
+                        <img src="https://img.icons8.com/color/48/mastercard-logo.png" height="24" alt="MasterCard" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="https://img.icons8.com/color/48/000000/rupay.png" height="24" alt="RuPay" />
                       </div>
                     </div>
                   </label>
@@ -925,15 +917,15 @@ export default function CheckoutClient({
                       className={`payment-method-card${paymentMethod === "cod" ? " is-selected" : ""}`}
                       style={{
                         display: "flex",
-                        gap: 12,
+                        gap: 14,
                         alignItems: "flex-start",
-                        padding: 14,
-                        border: `2px solid ${paymentMethod === "cod" ? "#603813" : "#e6dfd1"}`,
-                        borderRadius: 10,
-                        background: codAvailable ? "#fff" : "#f6f1e7",
+                        padding: 16,
+                        border: `2px solid ${paymentMethod === "cod" ? "#613a18" : "#e9d8c6"}`,
+                        borderRadius: 12,
+                        background: paymentMethod === "cod" ? "#fcf9f5" : (codAvailable ? "#fff" : "#f9f9f9"),
                         cursor: codAvailable ? "pointer" : "not-allowed",
-                        opacity: codAvailable ? 1 : 0.55,
-                        transition: "border-color .15s",
+                        opacity: codAvailable ? 1 : 0.6,
+                        transition: "all .2s ease",
                       }}
                     >
                       <input
@@ -943,39 +935,50 @@ export default function CheckoutClient({
                         checked={paymentMethod === "cod"}
                         disabled={!codAvailable}
                         onChange={() => setPaymentMethod("cod")}
-                        style={{ marginTop: 4 }}
+                        style={{ marginTop: 5, accentColor: '#613a18', transform: 'scale(1.2)' }}
                       />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600 }}>
-                          Cash on Delivery (COD)
+                        <div style={{ fontWeight: 600, color: '#3b2512', fontSize: '1.05rem', marginBottom: '4px' }}>
+                          Cash on Delivery
                         </div>
-                        <small className="text-muted">
+                        <small className="text-muted" style={{ fontSize: '0.85rem' }}>
                           {codAvailable
-                            ? `Pay with cash when your parcel arrives.${settings.codFee > 0 ? ` Extra ₹${formatINR(settings.codFee)} handling fee applies.` : ""}`
+                            ? `Pay with cash upon delivery.${settings.codFee > 0 ? ` A ₹${formatINR(settings.codFee)} fee applies.` : ""}`
                             : pincodeStatus === "valid"
-                              ? "Cash on Delivery is not available for your PIN code."
-                              : "Enter a valid PIN code to check COD availability."}
+                              ? "Not available for your PIN code."
+                              : "Enter a valid PIN code to check COD."}
                         </small>
                       </div>
                     </label>
                   ) : null}
                 </div>
 
-                <button
-                  type="submit"
-                  className="pay-button"
-                  disabled={payDisabled}
-                >
-                  {payButtonLabel}
-                </button>
+                <div className="d-flex flex-column align-items-center mt-2">
+                  <button
+                    type="submit"
+                    className="pay-button"
+                    disabled={payDisabled}
+                  >
+                    {submitting ? (
+                      <div className="spinner-border spinner-border-sm text-light mr-2" role="status"></div>
+                    ) : (
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    )}
+                    {payButtonLabel}
+                  </button>
+                  <div className="mt-3 text-muted d-flex align-items-center gap-1" style={{ fontSize: '0.8rem' }}>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    256-bit SSL encrypted & secure checkout
+                  </div>
+                </div>
               </form>
             </div>
           </div>
 
           {/* Right: order summary */}
-          <div className="col-lg-5">
-            <div className="card order-summary">
-              <h6>Your Order</h6>
+          <div className="col-lg-5 mt-4 mt-lg-0">
+            <div className="order-summary">
+              <h6>Order Summary</h6>
               {empty ? (
                 <div className="empty-cart">
                   <p>Your cart is empty.</p>
@@ -992,18 +995,23 @@ export default function CheckoutClient({
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={it.image || "/img/no-image.png"}
-                            className="review-product-img me-3"
+                            className="review-product-img"
                             alt={it.name}
                           />
+                          <span className="review-product-badge">{it.quantity}</span>
                         </div>
                         <div className="personalized-wooden-slice">
                           <strong>{it.name}</strong>
                           {it.size && (
                             <p>
-                              <strong>Size:</strong> {it.size}
+                              Size: {it.size}
                             </p>
                           )}
-                          <p className="mb-0 small">Qty: {it.quantity}</p>
+                          {(it.frontMessage || it.backMessage) && (
+                            <p className="mt-1" style={{ fontSize: '0.8rem' }}>
+                              Customized
+                            </p>
+                          )}
                         </div>
                         <div className="product-cont-money">
                           ₹{formatINR(it.price * it.quantity)}
@@ -1017,31 +1025,24 @@ export default function CheckoutClient({
               {!empty && (
                 <>
                   {/* ============== Coupon block ============== */}
-                  <div
-                    className="coupon-block"
-                    style={{
-                      borderTop: "1px solid rgba(96,56,19,0.12)",
-                      paddingTop: 14,
-                      marginTop: 8,
-                    }}
-                  >
+                  <div className="coupon-block">
                     {appliedCoupon ? (
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          background: "#fdf7ef",
-                          border: "1px solid rgba(96,56,19,0.18)",
-                          borderRadius: 10,
-                          padding: "10px 12px",
+                          background: "#eef8f1",
+                          border: "1px solid #c3e6cb",
+                          borderRadius: 8,
+                          padding: "10px 14px",
                         }}
                       >
                         <div>
-                          <div style={{ fontWeight: 600 }}>
+                          <div style={{ fontWeight: 600, color: '#155724', fontSize: '0.95rem' }}>
                             ✓ {appliedCoupon.code}
                           </div>
-                          <small className="text-muted">
+                          <small style={{ color: '#28a745' }}>
                             {couponMessage ?? "Coupon applied"}
                           </small>
                         </div>
@@ -1051,9 +1052,10 @@ export default function CheckoutClient({
                           style={{
                             background: "none",
                             border: "none",
-                            color: "#a04141",
-                            fontWeight: 600,
+                            color: "#721c24",
+                            fontWeight: 500,
                             cursor: "pointer",
+                            fontSize: '0.85rem'
                           }}
                         >
                           Remove
@@ -1062,16 +1064,16 @@ export default function CheckoutClient({
                     ) : (
                       <>
                         <label
-                          className="form-label"
-                          style={{ fontWeight: 600, marginBottom: 6 }}
+                          className="form-label text-muted mb-2"
+                          style={{ fontSize: '0.9rem' }}
                         >
-                          Have a coupon?
+                          Discount code or gift card
                         </label>
                         <div className="d-flex gap-2">
                           <input
                             type="text"
-                            className="form-control"
-                            placeholder="Enter code (e.g. DIWALI20)"
+                            className="form-control mb-0"
+                            placeholder="Enter code"
                             value={couponInput}
                             onChange={(e) =>
                               setCouponInput(
@@ -1087,22 +1089,21 @@ export default function CheckoutClient({
                                 void applyCoupon();
                               }
                             }}
-                            style={{ textTransform: "uppercase" }}
+                            style={{ textTransform: "uppercase", background: '#fff' }}
                           />
                           <button
                             type="button"
                             className="donate-btn"
-                            disabled={couponBusy || empty}
+                            disabled={couponBusy || empty || !couponInput.trim()}
                             onClick={() => void applyCoupon()}
-                            style={{ whiteSpace: "nowrap" }}
+                            style={{ whiteSpace: "nowrap", opacity: (!couponInput.trim() || couponBusy) ? 0.6 : 1 }}
                           >
-                            {couponBusy ? "Applying…" : "Apply"}
+                            {couponBusy ? "..." : "Apply"}
                           </button>
                         </div>
                         {couponError ? (
                           <small
-                            className="text-danger d-block"
-                            style={{ marginTop: 6 }}
+                            className="text-danger d-block mt-2"
                           >
                             {couponError}
                           </small>
@@ -1112,51 +1113,51 @@ export default function CheckoutClient({
                   </div>
 
                   {/* ============== Totals ============== */}
-                  <hr />
-                  <div className="totlal-amountdata">
-                    <span>Subtotal</span>
-                    <strong>₹{formatINR(breakdown.subtotal)}</strong>
-                  </div>
+                  <div className="mt-4 pt-4 border-top" style={{ borderColor: '#e9d8c6 !important' }}>
+                    <div className="totlal-amountdata">
+                      <span>Subtotal</span>
+                      <strong style={{ fontWeight: 500 }}>₹{formatINR(breakdown.subtotal)}</strong>
+                    </div>
 
-                  {breakdown.discountAmount > 0 ? (
-                    <div
-                      className="d-flex justify-content-between"
-                      style={{ color: "#2c8b3d" }}
-                    >
-                      <span>
-                        Discount{" "}
-                        {appliedCoupon ? `(${appliedCoupon.code})` : ""}
+                    {breakdown.discountAmount > 0 ? (
+                      <div
+                        className="d-flex justify-content-between pb-2"
+                        style={{ color: "#2c8b3d" }}
+                      >
+                        <span>
+                          Discount{" "}
+                          {appliedCoupon ? `(${appliedCoupon.code})` : ""}
+                        </span>
+                        <span style={{ fontWeight: 500 }}>− ₹{formatINR(breakdown.discountAmount)}</span>
+                      </div>
+                    ) : null}
+
+                    <div className="d-flex justify-content-between pb-2">
+                      <span>Shipping</span>
+                      <span style={{ fontWeight: 500 }}>
+                        {breakdown.shippingFee > 0
+                          ? `₹${formatINR(breakdown.shippingFee)}`
+                          : appliedCoupon?.freeShipping
+                            ? "Free (coupon)"
+                            : "Free"}
                       </span>
-                      <span>− ₹{formatINR(breakdown.discountAmount)}</span>
                     </div>
-                  ) : null}
 
-                  <div className="d-flex justify-content-between">
-                    <span>Shipping</span>
-                    <span>
-                      {breakdown.shippingFee > 0
-                        ? `₹${formatINR(breakdown.shippingFee)}`
-                        : appliedCoupon?.freeShipping
-                          ? "Free (coupon)"
-                          : "Free"}
-                    </span>
-                  </div>
+                    {breakdown.codFee > 0 ? (
+                      <div className="d-flex justify-content-between pb-2">
+                        <span>COD fee</span>
+                        <span style={{ fontWeight: 500 }}>₹{formatINR(breakdown.codFee)}</span>
+                      </div>
+                    ) : null}
 
-                  {breakdown.codFee > 0 ? (
-                    <div className="d-flex justify-content-between">
-                      <span>COD handling fee</span>
-                      <span>₹{formatINR(breakdown.codFee)}</span>
+                    <div className="allprice-data border-top mt-3 pt-3" style={{ borderColor: '#e9d8c6 !important' }}>
+                      <span style={{ color: '#3b2512' }}>
+                        <strong>Total</strong>
+                      </span>
+                      <span style={{ color: '#3b2512', fontSize: '1.4rem' }}>
+                        <strong>₹{formatINR(breakdown.total)}</strong>
+                      </span>
                     </div>
-                  ) : null}
-
-                  <hr />
-                  <div className="allprice-data">
-                    <span>
-                      <strong>Total</strong>
-                    </span>
-                    <span>
-                      <strong>₹{formatINR(breakdown.total)}</strong>
-                    </span>
                   </div>
                 </>
               )}

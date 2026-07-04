@@ -30,17 +30,8 @@ export function Gallery({
   const [active, setActive] = useState(list[0]);
 
   return (
-    <div className="product-details-outer">
-      <div className="image-wrapper-details">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          id="mainProductImage"
-          src={active}
-          className="default-img"
-          alt={`${productName} - Personalised Wooden Gift | Vishwakarma Gifts`}
-        />
-      </div>
-      <div className="product-detailsimages">
+    <div className="premium-gallery-container">
+      <div className="premium-gallery-thumbnails">
         {list.map((src, i) => (
           <div
             key={src + i}
@@ -55,9 +46,17 @@ export function Gallery({
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} className="default-img" alt={`${productName} - View ${i + 1} | Vishwakarma Gifts`} />
+            <img src={src} alt={`${productName} - View ${i + 1} | Vishwakarma Gifts`} />
           </div>
         ))}
+      </div>
+      <div className="premium-gallery-main">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          id="mainProductImage"
+          src={active}
+          alt={`${productName} - Personalised Wooden Gift | Vishwakarma Gifts`}
+        />
       </div>
     </div>
   );
@@ -417,7 +416,7 @@ export function Form({
 
   return (
     <>
-      <p className="price">
+      <div className="premium-price-container">
         <span className="discounted" id="display_discounted_price">
           Rs. {formatINR(finalPrice)}
         </span>
@@ -426,70 +425,59 @@ export function Form({
             <span className="original" id="display_original_price">
               Rs. {formatINR(originalPrice)}
             </span>
-            <span className="sale">Sale</span>
+            <span className="sale-badge">Sale</span>
           </>
         )}
-      </p>
+      </div>
 
-      <p className="features">
-        <i className="fa-solid fa-plus" /> <span> Free Shipping </span>
-      </p>
-      <p className="features">
-        <i className="fa-solid fa-plus" />{" "}
-        <span> Free Stand Wooden / Mdf</span>
-      </p>
-      <p className="features">
-        <i className="fa-solid fa-plus" /> <span> Free Damage Cover </span>
-      </p>
-      <p className="features">
-        <i className="fa-solid fa-plus" /> <span> Photo Customization </span>
-      </p>
+      <div className="premium-highlights">
+        <div className="premium-highlight-item">
+          <i className="fa-solid fa-truck-fast" /> <span>Free Shipping</span>
+        </div>
+        <div className="premium-highlight-item">
+          <i className="fa-solid fa-layer-group" /> <span>Free Wooden Stand</span>
+        </div>
+        <div className="premium-highlight-item">
+          <i className="fa-solid fa-shield-halved" /> <span>Damage Cover</span>
+        </div>
+        <div className="premium-highlight-item">
+          <i className="fa-solid fa-wand-magic-sparkles" /> <span>Personalized</span>
+        </div>
+      </div>
 
-      {/* SIZES */}
-      <div className="size-options">
-        {sizes.map((s) => (
+      <div className="premium-form-step">
+        <h4 className="premium-step-title"><span className="step-num">1</span> Choose Size</h4>
+        <div className="premium-size-options">
+          {sizes.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`premium-size-btn ${s.id === sizeId ? "active" : ""}`}
+              onClick={() => setSizeId(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="premium-form-step">
+        <h4 className="premium-step-title"><span className="step-num">2</span> Personalize</h4>
+        <div className="variation-options mb-3">
           <button
-            key={s.id}
             type="button"
-            className={`size-btn ${s.id === sizeId ? "best-value active" : ""}`}
-            onClick={() => setSizeId(s.id)}
+            className={`premium-size-btn ${variation === "one_side" ? "active" : ""}`}
+            onClick={() => setVariation("one_side")}
           >
-            {s.label}
+            One Side Photo & Message
           </button>
-        ))}
-      </div>
-
-      {/* VARIATIONS */}
-      <div className="variation-options">
-        <button
-          type="button"
-          className={variation === "one_side" ? "most-popular active" : ""}
-          onClick={() => setVariation("one_side")}
-        >
-          One Side Photo & Message
-        </button>
-        {/*
-        <button
-          type="button"
-          className={variation === "both_sides" ? "most-popular active" : ""}
-          onClick={() => setVariation("both_sides")}
-        >
-          Both Sides Photos & Messages
-        </button>
-        */}
-      </div>
-
-      {/* CUSTOMISATION */}
-      <div className="customize-section">
-        <p>Customize Your Product Before Order! </p>
+        </div>
 
         <input
           type="text"
           id="front_message"
-          placeholder="Please enter the message you want to write on the frame"
-          className={`form-control mb-2 ${
-            errors.front_message ? "is-invalid" : ""
-          }`}
+          placeholder="Enter message for the frame..."
+          className={`premium-input ${errors.front_message ? "is-invalid" : ""}`}
           value={frontMessage}
           onChange={(e) => {
             setFrontMessage(e.target.value);
@@ -506,10 +494,8 @@ export function Form({
             <input
               type="text"
               id="back_message"
-              placeholder="Back Side Message"
-              className={`form-control mb-2 ${
-                errors.back_message ? "is-invalid" : ""
-              }`}
+              placeholder="Back Side Message..."
+              className={`premium-input ${errors.back_message ? "is-invalid" : ""}`}
               value={backMessage}
               onChange={(e) => {
                 setBackMessage(e.target.value);
@@ -518,17 +504,14 @@ export function Form({
               }}
             />
             {errors.back_message && (
-              <div className="invalid-feedback d-block">
-                {errors.back_message}
-              </div>
+              <div className="invalid-feedback d-block">{errors.back_message}</div>
             )}
           </>
         )}
 
-        {/* FRONT IMAGE UPLOAD */}
         <UploadDropzone
           slot={frontUpload}
-          label="Please upload the photo you want to customize."
+          label="Upload your photo"
           inputId="front_image"
           inputRef={frontFileRef}
           onFileSelected={onFrontFile}
@@ -536,7 +519,6 @@ export function Form({
           error={errors.front_image}
         />
 
-        {/* BACK IMAGE UPLOAD */}
         {variation === "both_sides" && (
           <UploadDropzone
             slot={backUpload}
@@ -548,72 +530,81 @@ export function Form({
             error={errors.back_image}
           />
         )}
-
-        {/* QUANTITY + ACTIONS */}
-        <div className="prtyuj">
-          <div className="practice-plus-minus">
-            <button
-              type="button"
-              className="minus"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            >
-              -
-            </button>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              id="mtr_quantity"
-              value={Number.isFinite(quantity) && quantity > 0 ? quantity : 1}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/[^0-9]/g, "");
-                if (raw === "") return;
-                const v = parseInt(raw, 10);
-                if (!Number.isNaN(v) && v >= 1) setQuantity(v);
-              }}
-              aria-label="Quantity"
-            />
-            <button
-              type="button"
-              className="plus"
-              onClick={() => setQuantity((q) => q + 1)}
-            >
-              +
-            </button>
-          </div>
-
-          <div className="row mt-3">
-            <div className="col-12 col-md-6 mb-2 mb-md-0">
-              <button
-                type="button"
-                id="add-to-basket"
-                className="add-to-cart donate-btn w-100"
-                disabled={cartDisabled}
-                onClick={onAddToCart}
-              >
-                {submitting ? "Adding…" : "Add to Cart"}
-              </button>
-            </div>
-            <div className="col-12 col-md-6">
-              <button
-                type="button"
-                id="buy-now"
-                className="buy-now-btn donate-btn w-100"
-                disabled={cartDisabled}
-                onClick={onBuyNow}
-              >
-                {submitting ? "Processing…" : "Buy Now"}
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/*
-        Note: the old full-screen .loderClass overlay has been removed.
-        Uploads now run in the background while the rest of the form stays
-        interactive. Per-slot status is shown inside <UploadDropzone />.
-      */}
+      <div className="premium-action-area">
+        <div className="premium-qty-wrapper">
+          <button
+            type="button"
+            className="premium-qty-btn"
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+          >
+            -
+          </button>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            id="mtr_quantity"
+            className="premium-qty-input"
+            value={Number.isFinite(quantity) && quantity > 0 ? quantity : 1}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^0-9]/g, "");
+              if (raw === "") return;
+              const v = parseInt(raw, 10);
+              if (!Number.isNaN(v) && v >= 1) setQuantity(v);
+            }}
+            aria-label="Quantity"
+          />
+          <button
+            type="button"
+            className="premium-qty-btn"
+            onClick={() => setQuantity((q) => q + 1)}
+          >
+            +
+          </button>
+        </div>
+
+        <button
+          type="button"
+          id="add-to-basket"
+          className="premium-btn premium-btn-cart"
+          disabled={cartDisabled}
+          onClick={onAddToCart}
+        >
+          {submitting ? "Adding…" : "Add to Cart"}
+        </button>
+        
+        <button
+          type="button"
+          id="buy-now"
+          className="premium-btn premium-btn-buy"
+          disabled={cartDisabled}
+          onClick={onBuyNow}
+        >
+          {submitting ? "Processing…" : "Buy Now"}
+        </button>
+      </div>
+
+      {/* Sticky Mobile Buy Bar */}
+      <div className="premium-sticky-bar d-md-none">
+        <button
+          type="button"
+          className="premium-btn premium-btn-cart"
+          disabled={cartDisabled}
+          onClick={onAddToCart}
+        >
+          {submitting ? "Adding…" : "Add"}
+        </button>
+        <button
+          type="button"
+          className="premium-btn premium-btn-buy"
+          disabled={cartDisabled}
+          onClick={onBuyNow}
+        >
+          {submitting ? "Processing…" : "Buy Now"}
+        </button>
+      </div>
     </>
   );
 }
@@ -643,118 +634,83 @@ function UploadDropzone({
   const hasPreview = !!slot?.preview;
 
   return (
-    <div className="document-upload creat-artisttoken mb-sm-2 mb-0">
-      <div className="form-group">
+    <div className="premium-upload-zone"
+      onClick={() => inputRef.current?.click()}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+      }}
+    >
+      {hasPreview ? (
+        <div className="premium-upload-content">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={slot.preview}
+            alt={slot.fileName}
+            className="premium-upload-preview"
+          />
+          <h6>Click to change photo</h6>
+        </div>
+      ) : (
+        <div className="premium-upload-content">
+          <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '32px', color: 'var(--color-premium-gold)' }}></i>
+          <h6>{label}</h6>
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        id={inputId}
+        accept="image/*"
+        onChange={onFileSelected}
+        style={{ display: "none" }}
+      />
+
+      {slot && (
         <div
-          className="dropzone dropzone-single dz-clickable"
-          onClick={() => inputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
-          }}
-          style={{ position: "relative" }}
+          className="d-flex align-items-center justify-content-center mt-2"
+          style={{ gap: 6, fontSize: "0.85rem" }}
         >
-          <div className="dz-default dz-message">
-            {hasPreview ? (
-              <div
-                className="upload-doc"
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
+          {slot.status === "uploading" && (
+            <>
+              <span
+                className="spinner-border spinner-border-sm text-secondary"
+                role="status"
+                aria-hidden="true"
+                style={{ width: 14, height: 14, borderWidth: 2 }}
+              />
+              <small className="text-muted">Uploading in background…</small>
+            </>
+          )}
+          {slot.status === "done" && (
+            <small className="text-success fw-semibold">Ready ✓</small>
+          )}
+          {slot.status === "error" && (
+            <>
+              <small className="text-danger">{slot.error ?? "Upload failed"}</small>
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0"
+                style={{ fontSize: "0.85rem" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRetry();
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={slot.preview}
-                  alt={slot.fileName}
-                  style={{
-                    maxHeight: 140,
-                    maxWidth: "100%",
-                    objectFit: "contain",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="upload-doc">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/img/frontend/upload.svg"
-                  alt=""
-                  className="img-fluid"
-                />
-              </div>
-            )}
-
-            <h6 style={{ marginTop: 8 }}>
-              {hasPreview ? "Click to change photo" : label}
-            </h6>
-
-            <input
-              ref={inputRef}
-              type="file"
-              id={inputId}
-              accept="image/*"
-              onChange={onFileSelected}
-              style={{ display: "none" }}
-            />
-
-            {slot && (
-              <div
-                className="d-flex align-items-center justify-content-center mt-1"
-                style={{ gap: 6, fontSize: "0.85rem", lineHeight: 1.2 }}
-              >
-                {slot.status === "uploading" && (
-                  <>
-                    <span
-                      className="spinner-border spinner-border-sm text-secondary"
-                      role="status"
-                      aria-hidden="true"
-                      style={{ width: 12, height: 12, borderWidth: 2 }}
-                    />
-                    <small className="text-muted">
-                      Uploading in background…
-                    </small>
-                  </>
-                )}
-                {slot.status === "done" && (
-                  <small className="text-success fw-semibold">Ready ✓</small>
-                )}
-                {slot.status === "error" && (
-                  <>
-                    <small className="text-danger">
-                      {slot.error ?? "Upload failed"}
-                    </small>
-                    <button
-                      type="button"
-                      className="btn btn-link btn-sm p-0"
-                      style={{ fontSize: "0.85rem" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRetry();
-                      }}
-                    >
-                      Retry
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {error && (
-              <div
-                className="invalid-feedback d-block"
-                style={{ marginTop: 4 }}
-              >
-                {error}
-              </div>
-            )}
-          </div>
+                Retry
+              </button>
+            </>
+          )}
         </div>
-      </div>
+      )}
+
+      {error && (
+        <div className="invalid-feedback d-block" style={{ marginTop: 8 }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }

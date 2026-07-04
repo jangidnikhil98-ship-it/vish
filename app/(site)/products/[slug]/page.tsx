@@ -213,12 +213,9 @@ export default async function ProductDetailsPage({ params }: PageProps) {
               <div className="product-details-outer">
                 <h1 className="product-title">{product.name ?? "Product"}</h1>
 
-                <div className="rating text-warning">
-                  <StarRow rating={product.avgRating} />
-                  <span className="text-dark">
-                    {" "}
-                    ({product.avgRating} / 5 • {product.reviewCount} reviews)
-                  </span>
+                <div className="premium-rating">
+                  <span className="stars"><StarRow rating={product.avgRating} /></span>
+                  <span className="count">({product.avgRating} / 5 • {product.reviewCount} reviews)</span>
                 </div>
 
                 <Form
@@ -230,73 +227,111 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                   sizes={product.sizes}
                   initialSizeId={defaultSize?.id}
                 />
+
+                <div className="premium-trust-badges">
+                  <div className="premium-badge">
+                    <i className="fa-solid fa-lock" />
+                    <p>Secure Checkout</p>
+                  </div>
+                  <div className="premium-badge">
+                    <i className="fa-solid fa-medal" />
+                    <p>Premium Quality</p>
+                  </div>
+                  <div className="premium-badge">
+                    <i className="fa-solid fa-box-open" />
+                    <p>Easy Returns</p>
+                  </div>
+                </div>
+
+                <div className="premium-delivery-estimate mt-4">
+                  <i className="fa-regular fa-calendar-check" />
+                  <p>
+                    <strong>Estimated Delivery:</strong> Usually ships in 24-48 hours.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* DETAILED DESCRIPTION */}
+      {product.description && (
+        <section className="container mt-5">
+          <div className="row justify-content-center">
+            <div className="col-md-8">
+              <h3 className="premium-section-title">Product Details</h3>
+              <div 
+                className="premium-description text-muted" 
+                style={{ lineHeight: '1.8', fontSize: '15px' }}
+                dangerouslySetInnerHTML={{ __html: product.description }} 
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* RELATED PRODUCTS */}
       {related.length > 0 && (
-        <section className="product-section container">
-          <h3 className="mb-4 similerpro text-center">You may also like</h3>
-          <div className="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-4 text-center justify-content-center g-4">
-            {related.map((p) => (
-              <div key={p.id} className="col">
-                <div className="category-item-annivesary">
-                  <Link href={`/products/${p.slug ?? ""}`}>
-                    <div className="birthday-item">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imageSrc(p.image)}
-                        alt={`${p.name ?? "Product"} - Personalised Wooden Gift | Vishwakarma Gifts`}
-                        loading="lazy"
-                      />
-                    </div>
-                  </Link>
-                  <div className="artificial-engvraed">
-                    <Link href={`/products/${p.slug ?? ""}`}>
-                      <p>{p.name ?? "Product"}</p>
-                      <div className="product-price">
-                        <h2>₹{formatINR(p.finalPrice)}</h2>
-                        {p.price && p.price > p.finalPrice ? (
-                          <h6>₹{formatINR(p.price)}</h6>
-                        ) : null}
+        <section className="premium-related-section mt-5">
+          <div className="container">
+            <h3 className="premium-section-title">Perfect Pairings</h3>
+            <div className="row row-cols-2 row-cols-md-4 g-4">
+              {related.map((p) => (
+                <div key={p.id} className="col">
+                  <div className="premium-product-card">
+                    <Link href={`/products/${p.slug ?? ""}`} style={{ textDecoration: 'none' }}>
+                      <div className="premium-card-img">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imageSrc(p.image)}
+                          alt={`${p.name ?? "Product"} | Vishwakarma Gifts`}
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="premium-card-info">
+                        <h4 className="premium-card-title">{p.name ?? "Product"}</h4>
+                        <div className="premium-card-price">
+                          ₹{formatINR(p.finalPrice)}
+                          {p.price && p.price > p.finalPrice && (
+                            <span className="old">₹{formatINR(p.price)}</span>
+                          )}
+                        </div>
                       </div>
                     </Link>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
       )}
 
       {/* REVIEWS */}
-      <section className="review-section container mt-5">
-        <h3 className="mb-4" style={{ color: "#613a18" }}>
-          Customer Reviews
-        </h3>
-        <div className="reviews-list">
-          {product.reviews.length === 0 ? (
-            <p>No reviews available.</p>
-          ) : (
-            product.reviews.map((r, idx) => (
-              <div
-                key={idx}
-                className="single-review border-bottom pb-3 mb-3"
-              >
-                <strong>
-                  {r.firstName ?? ""} {r.lastName ?? ""}
-                </strong>
-                <div className="text-warning mb-1">
-                  <StarRow rating={r.rating ?? 0} />
-                  <span className="text-muted"> ({r.rating ?? 0})</span>
-                </div>
-                <p>{r.comment}</p>
-              </div>
-            ))
-          )}
+      <section className="premium-review-section">
+        <div className="container">
+          <h3 className="premium-section-title">Customer Reviews</h3>
+          <div className="row justify-content-center">
+            <div className="col-md-8">
+              {product.reviews.length === 0 ? (
+                <p className="text-center text-muted">No reviews available yet.</p>
+              ) : (
+                product.reviews.map((r, idx) => (
+                  <div key={idx} className="premium-review-card">
+                    <div className="d-flex align-items-center mb-2">
+                      <strong style={{ color: 'var(--color-premium-brown)', marginRight: '10px' }}>
+                        {r.firstName ?? ""} {r.lastName ?? ""}
+                      </strong>
+                      <span className="text-warning">
+                        <StarRow rating={r.rating ?? 0} />
+                      </span>
+                    </div>
+                    <p className="mb-0 text-muted">{r.comment}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </section>
     </>

@@ -1,99 +1,127 @@
 /* Scoped to the .checkout-container so this file never leaks. */
 
 .checkout-container {
-  padding-top: 30px;
-  padding-bottom: 60px;
+  padding-top: 40px;
+  padding-bottom: 80px;
+  max-width: 1140px;
+  margin: 0 auto;
 }
 
-/* Fix autofill & prefilled input text visibility — same intent as the inline
-   <style> in the original Blade. */
+/* Base resets for inputs inside checkout */
 .checkout-container input,
 .checkout-container select,
 .checkout-container textarea {
-  color: #000 !important;
+  color: #333 !important;
+  background-color: #faf7f4;
+  border: 1px solid #e9d8c6;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.checkout-container input:focus,
+.checkout-container select:focus,
+.checkout-container textarea:focus {
+  outline: none;
+  border-color: #bfa588;
   background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(191, 165, 136, 0.15);
 }
 
 .checkout-container .from-typedrt h5 {
   font-weight: 600;
-  color: #613a18;
-  margin-bottom: 0.5rem;
+  color: #3b2512;
+  margin-bottom: 1rem;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
 }
 
 .checkout-container .form-control,
 .checkout-container .form-select {
   border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .checkout-container .payment-cardmethod {
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
+  margin-top: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .checkout-container .payment-cardmethod h2 {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 0.25rem;
-  color: #613a18;
-}
-
-.checkout-container .payment-box {
-  background: #faf7f4;
-  border: 1px solid #d8c4b2;
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #3b2512;
+  letter-spacing: -0.01em;
 }
 
 .checkout-container .pay-button {
   background: #613a18;
   color: #fff;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 16px 24px;
+  border-radius: 10px;
   font-weight: 600;
   width: 100%;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(97, 58, 24, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
 .checkout-container .pay-button:hover:not(:disabled) {
   background: #4b2d12;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(97, 58, 24, 0.25);
+}
+
+.checkout-container .pay-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .checkout-container .pay-button:disabled {
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.6;
+  background: #a69485;
+  box-shadow: none;
 }
 
 .checkout-container .donate-btn {
-  background: #613a18;
-  color: #fff;
+  background: transparent;
+  color: #613a18;
+  border: 1px solid #613a18;
   padding: 8px 18px;
   border-radius: 6px;
   text-decoration: none;
   font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .checkout-container .donate-btn:hover {
-  background: #4b2d12;
+  background: #613a18;
   color: #fff;
 }
 
 /* Order summary */
 .checkout-container .order-summary {
-  border: 1px solid #d8c4b2;
-  border-radius: 12px;
-  padding: 1.25rem;
-  background: #fff;
+  border: 1px solid #e9d8c6;
+  border-radius: 16px;
+  padding: 1.75rem;
+  background: #faf7f4;
   position: sticky;
-  top: 1rem;
+  top: 100px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.02);
 }
 
 .checkout-container .order-summary h6 {
-  font-weight: 700;
-  color: #613a18;
-  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #3b2512;
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
 }
 
 .checkout-container .order-summary ul {
@@ -103,52 +131,75 @@
 }
 
 .checkout-container .order-summary li {
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px dashed #e9d8c6;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0e4d8;
 }
 
 .checkout-container .order-summary li:last-child {
   border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .checkout-container .prt-list-data {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 1rem;
 }
 
 .checkout-container .review-product-img-container {
   flex: 0 0 auto;
+  position: relative;
 }
 
 .checkout-container .review-product-img {
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
   object-fit: cover;
   border: 1px solid #e9d8c6;
+  background-color: #fff;
+}
+
+.checkout-container .review-product-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #613a18;
+  color: #fff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .checkout-container .personalized-wooden-slice {
   flex: 1 1 auto;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .checkout-container .personalized-wooden-slice strong {
   display: block;
-  color: #2c2c2c;
-  margin-bottom: 0.25rem;
+  color: #1a1a1a;
+  margin-bottom: 0.2rem;
+  font-weight: 600;
 }
 
 .checkout-container .personalized-wooden-slice p {
   margin: 0;
   color: #6c757d;
+  font-size: 0.85rem;
 }
 
 .checkout-container .product-cont-money {
   font-weight: 600;
-  color: #613a18;
+  color: #3b2512;
   white-space: nowrap;
 }
 
@@ -156,15 +207,18 @@
 .checkout-container .allprice-data {
   display: flex;
   justify-content: space-between;
-  padding: 0.25rem 0;
+  padding: 0.5rem 0;
+  color: #4a4a4a;
 }
 
 .checkout-container .allprice-data {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  color: #1a1a1a;
+  margin-top: 0.5rem;
 }
 
 .checkout-container .empty-cart {
-  padding: 3rem 1rem;
+  padding: 4rem 1rem;
   text-align: center;
   color: #6c757d;
 }
@@ -172,19 +226,32 @@
 /* Status banner */
 .checkout-container .status-banner {
   border-radius: 8px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .checkout-container .status-banner--error {
-  background: #fdecea;
-  color: #b71c1c;
-  border-left: 4px solid #b71c1c;
+  background: #fdf5f4;
+  color: #c92a2a;
+  border: 1px solid #fbd2d2;
 }
 
 .checkout-container .status-banner--info {
-  background: #e8f4fd;
-  color: #0d47a1;
-  border-left: 4px solid #0d47a1;
+  background: #f1f8fc;
+  color: #1864ab;
+  border: 1px solid #d0e7f7;
+}
+
+/* Coupon UI in checkout */
+.checkout-container .coupon-block {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+  border: 1px dashed #d8c4b2;
 }

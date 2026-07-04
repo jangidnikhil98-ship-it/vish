@@ -42,13 +42,17 @@ type CartContextType = {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  giftNote: string;
+  setGiftNote: (note: string) => void;
 };
 
 const CartContext = createContext<CartContextType | null>(null);
 const STORAGE_KEY = "vishwakarma_cart_v1";
+const STORAGE_NOTE_KEY = "vishwakarma_cart_note_v1";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [giftNote, setGiftNote] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   // Load from localStorage once on the client
@@ -58,6 +62,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored) as CartItem[];
         if (Array.isArray(parsed)) setItems(parsed);
+      }
+      const storedNote = window.localStorage.getItem(STORAGE_NOTE_KEY);
+      if (storedNote) {
+        setGiftNote(storedNote);
       }
     } catch {
       /* ignore parse errors */
@@ -70,10 +78,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      window.localStorage.setItem(STORAGE_NOTE_KEY, giftNote);
     } catch {
       /* ignore quota errors */
     }
-  }, [items, hydrated]);
+  }, [items, giftNote, hydrated]);
 
   const addItem = useCallback((item: AddCartItem) => {
     setItems((prev) => {
@@ -105,13 +114,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [removeItem],
   );
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const clearCart = useCallback(() => {
+    setItems([]);
+    setGiftNote("");
+  }, []);
 
   const value = useMemo<CartContextType>(() => {
     const count = items.reduce((acc, i) => acc + i.quantity, 0);
     const total = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
-    return { items, count, total, addItem, removeItem, updateQuantity, clearCart };
-  }, [items, addItem, removeItem, updateQuantity, clearCart]);
+    return { items, count, total, addItem, removeItem, updateQuantity, clearCart, giftNote, setGiftNote };
+  }, [items, addItem, removeItem, updateQuantity, clearCart, giftNote]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
