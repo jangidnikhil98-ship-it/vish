@@ -412,53 +412,6 @@ export default function Header() {
               </Link>
             </li>
           </ul>
-
-          {/* Mobile-only auth footer */}
-          <div className="mobile-nav-footer">
-            {user ? (
-              <>
-                <div className="mobile-nav-greeting">
-                  Hi, <strong>{user.first_name}</strong>
-                </div>
-                <Link
-                  href="/dashboard"
-                  className="mobile-nav-btn outline"
-                  onClick={() => setNavOpen(false)}
-                >
-                  My Account
-                </Link>
-                <button
-                  type="button"
-                  className="mobile-nav-btn"
-                  onClick={async () => {
-                    setNavOpen(false);
-                    await logout();
-                    router.push("/");
-                    router.refresh();
-                  }}
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="mobile-nav-btn"
-                  onClick={() => setNavOpen(false)}
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="mobile-nav-btn outline"
-                  onClick={() => setNavOpen(false)}
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
         </nav>
 
         <div className="search-user">

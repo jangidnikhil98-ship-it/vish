@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "./privacy.css";
+import "../../components/premium-policy.css";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",

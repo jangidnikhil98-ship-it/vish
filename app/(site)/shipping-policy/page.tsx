@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "./shipping.css";
+import "../../components/premium-policy.css";
 
 export const metadata: Metadata = {
   title: "Shipping Policy | Vishwakarma Gifts",

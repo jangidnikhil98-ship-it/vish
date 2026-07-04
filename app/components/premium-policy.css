@@ -1,0 +1,123 @@
+:root {
+  --wood: #613A18;
+  --wood-dark: #4b2d12;
+  --wood-light: #f6eee7;
+  --premium-bg: #fff;
+  --premium-shadow: 0 20px 40px rgba(97, 58, 24, 0.08);
+}
+
+/* Page Header */
+.theme-title {
+  color: var(--wood-dark);
+  font-weight: 800;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+/* Main Wrapper */
+.policy-wrapper {
+  background: var(--premium-bg);
+  border-radius: 24px;
+  box-shadow: var(--premium-shadow);
+  border: 1px solid rgba(97, 58, 24, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.policy-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg, var(--wood-light), var(--wood), var(--wood-dark));
+}
+
+/* Sections */
+.policy-section, .about-section, .terms-section {
+  margin-bottom: 3.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid rgba(97, 58, 24, 0.08);
+}
+
+.policy-section:last-child, .about-section:last-child, .terms-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.policy-section h2, .about-section h2, .terms-section h2 {
+  color: var(--wood-dark);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  font-size: 1.5rem;
+  letter-spacing: -0.5px;
+  margin-bottom: 1.25rem;
+}
+
+/* Badges */
+.theme-badge {
+  background: linear-gradient(135deg, var(--wood), var(--wood-dark));
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 10px rgba(97, 58, 24, 0.2);
+}
+
+/* Alerts / Policy Points */
+.theme-alert, .policy-point, .contact-box {
+  background: linear-gradient(145deg, #fff, #faf7f4);
+  border: 1px solid rgba(97, 58, 24, 0.06);
+  border-left: 6px solid var(--wood);
+  padding: 1.8rem;
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.theme-alert:hover, .policy-point:hover, .contact-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(97, 58, 24, 0.08);
+}
+
+.policy-point h4, .contact-box h4 {
+  color: var(--wood-dark);
+  font-weight: 700;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+/* Text */
+.policy-wrapper p, .policy-wrapper li {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #555;
+}
+
+.policy-wrapper ul {
+  padding-left: 1.5rem;
+}
+
+.policy-wrapper li {
+  margin-bottom: 0.8rem;
+}
+
+/* Links */
+.policy-wrapper a {
+  color: var(--wood);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(97, 58, 24, 0.3);
+  transition: all 0.2s ease;
+}
+
+.policy-wrapper a:hover {
+  color: var(--wood-dark);
+  border-bottom-color: var(--wood-dark);
+}
