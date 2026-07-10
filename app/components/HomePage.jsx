@@ -67,6 +67,7 @@ export default function HomePage({
   banners = [],
   aboutHeading = "About Vishwakarma Gifts",
   aboutContent = "",
+  reels = [],
   workshopVideo = {
     thumbnailUrl: "/img/workshop.webp",
     videoUrl: "",
@@ -548,15 +549,34 @@ export default function HomePage({
             <p className="hp-section-subtitle">@vishwakarmagifts - Join our community of gift lovers</p>
           </div>
           <div className="hp-insta-grid" data-aos="fade-up" data-aos-delay="100">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="hp-insta-card">
-                <div className="hp-insta-placeholder">
-                  <i className="fa-brands fa-instagram"></i>
-                  <p>Instagram Reel {i}</p>
-                  <span>(Integration ready)</span>
+            {reels.length > 0 ? (
+              reels.map((reel, idx) => (
+                <a key={reel.id || idx} href={reel.permalink} target="_blank" rel="noopener noreferrer" className="hp-insta-card" style={{ display: 'block', overflow: 'hidden', position: 'relative', aspectRatio: '1/1' }}>
+                  <video 
+                    src={reel.media_url} 
+                    poster={reel.thumbnail_url}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                  />
+                  <div className="hp-insta-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
+                    <i className="fa-brands fa-instagram text-white" style={{ fontSize: '2.5rem' }}></i>
+                  </div>
+                </a>
+              ))
+            ) : (
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="hp-insta-card">
+                  <div className="hp-insta-placeholder">
+                    <i className="fa-brands fa-instagram"></i>
+                    <p>Instagram Reel {i}</p>
+                    <span>(Integration ready)</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
           <div className="text-center mt-5" data-aos="fade-up">
             <a href="https://instagram.com/vishwakarmagifts" target="_blank" rel="noopener noreferrer" className="hp-btn hp-btn-primary">

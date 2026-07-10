@@ -56,6 +56,7 @@ export default async function Home() {
   let banners: Array<{ image: string; span: string; title: string; description: string; link: string }> = [];
   let aboutHeading = "About Vishwakarma Gifts";
   let aboutContent = "";
+  let reels: any[] = [];
 
   try {
     const [result, resultNew, catsStr, bannersStr, aboutHeadingStr, aboutContentStr] = await Promise.all([
@@ -93,6 +94,19 @@ export default async function Home() {
     console.error("[home] failed to load bestsellers/newArrivals/categories/banners/about:", err);
   }
 
+  try {
+    const igToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+    if (igToken) {
+      const igRes = await fetch(`https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink&access_token=${igToken}`, { next: { revalidate: 3600 } });
+      if (igRes.ok) {
+        const igData = await igRes.json();
+        reels = (igData.data || []).filter((item: any) => item.media_type === 'VIDEO').slice(0, 4);
+      }
+    }
+  } catch (e) {
+    console.error("[home] failed to fetch reels:", e);
+  }
+
   const firstBannerImage = banners[0]?.image || "/img/banner.webp";
 
   return (
@@ -112,6 +126,7 @@ export default async function Home() {
         banners={banners}
         aboutHeading={aboutHeading}
         aboutContent={aboutContent}
+        reels={reels}
       />
     </>
   );
