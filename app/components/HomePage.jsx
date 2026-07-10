@@ -211,7 +211,7 @@ export default function HomePage({
     <div className="hp-container">
       {/* 1. HERO SECTION */}
       <section className="hp-hero">
-        <div id="carouselExampleCaptions" className="carousel slide carousel-fade">
+        <div id="carouselExampleCaptions" className="carousel slide">
           <div className="carousel-indicators">
             {finalBanners.map((_, idx) => (
               <button
