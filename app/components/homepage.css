@@ -88,11 +88,17 @@
 .hp-hero .carousel-item {
   height: 85vh;
   min-height: 600px;
+  transition: opacity 1.2s ease-in-out !important;
 }
 .hp-hero .carousel-item img {
   object-fit: cover;
   height: 100%;
   width: 100%;
+  transform: scale(1.05);
+  transition: transform 6s ease-in-out;
+}
+.hp-hero .carousel-item.active img {
+  transform: scale(1);
 }
 .hp-hero-overlay {
   position: absolute;
