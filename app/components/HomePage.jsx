@@ -446,8 +446,8 @@ export default function HomePage({
         </div>
       </section>
 
-      {/* 7. WORKSHOP VIDEO SECTION */}
-      {workshopVideo && (
+      {/* 7. WORKSHOP VIDEO SECTION (Temporarily hidden) */}
+      {false && workshopVideo && (
         <section className="hp-workshop-video hp-section">
           <div className="container">
             <div className="hp-video-card" data-aos="fade-up">
